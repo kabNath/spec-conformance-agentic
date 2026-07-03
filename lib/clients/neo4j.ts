@@ -2,15 +2,20 @@
 // navigator walks: (:Clause)-[:CHILD]->(:Clause) and (:Clause)-[:XREF]->(:Clause).
 import neo4j, { type Driver } from "neo4j-driver";
 
+// Lazily construct the driver on first use (not at import) so `next build` and
+// other tooling can load this module without NEO4J_* env vars set. Cached on
+// globalThis so hot-reload / repeated calls reuse a single driver.
 const g = globalThis as unknown as { neo4j?: Driver };
-export const driver: Driver =
-  g.neo4j ??
-  neo4j.driver(process.env.NEO4J_URI!, neo4j.auth.basic(process.env.NEO4J_USER!, process.env.NEO4J_PASSWORD!));
-if (process.env.NODE_ENV !== "production") g.neo4j = driver;
+export function driver(): Driver {
+  return (g.neo4j ??= neo4j.driver(
+    process.env.NEO4J_URI!,
+    neo4j.auth.basic(process.env.NEO4J_USER!, process.env.NEO4J_PASSWORD!),
+  ));
+}
 
 /** Cross-references one hop out from a clause (the graph-walk edges). */
 export async function neighbours(standardId: string, clause: string): Promise<string[]> {
-  const session = driver.session();
+  const session = driver().session();
   try {
     const r = await session.run(
       `MATCH (c:Clause {standardId:$standardId, clause:$clause})-[:XREF]->(n:Clause)
@@ -26,7 +31,7 @@ export type ClauseNode = { clause: string; title: string; text: string; normativ
 
 /** Read a clause's title + body from the graph. */
 export async function getClause(standardId: string, clause: string): Promise<ClauseNode | null> {
-  const session = driver.session();
+  const session = driver().session();
   try {
     const r = await session.run(
       `MATCH (c:Clause {standardId:$standardId, clause:$clause}) RETURN c LIMIT 1`,

@@ -3,15 +3,22 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { extractJSON } from "../json";
 
-export const llm = new ChatOpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  model: process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4.6",
-  temperature: 0,
-  configuration: { baseURL: "https://openrouter.ai/api/v1" },
-});
+// Lazily construct the client on first use, NOT at import time — so `next build`
+// can collect page data (which imports the route modules) without
+// OPENROUTER_API_KEY set. ChatOpenAI throws in its constructor when the key is
+// missing, which otherwise fails the build.
+let _llm: ChatOpenAI | null = null;
+function llm(): ChatOpenAI {
+  return (_llm ??= new ChatOpenAI({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    model: process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4.6",
+    temperature: 0,
+    configuration: { baseURL: "https://openrouter.ai/api/v1" },
+  }));
+}
 
 async function callJSON<T>(system: string, user: string): Promise<T> {
-  const res = await llm.invoke([
+  const res = await llm().invoke([
     { role: "system", content: system },
     { role: "user", content: user },
   ]);
