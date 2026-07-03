@@ -1,5 +1,7 @@
 # Spec Conformance Agent — agentic stack
 
+![Demo](docs/demo.gif)
+
 A 3GPP/O-RAN **document-level** conformance engine on a full modern agentic-SaaS
 stack. **Every tool has an explicit, working role** — nothing is a placeholder.
 The moat modules (`lib/parser-3gpp.ts`, `lib/conformance-contract.ts`) are
