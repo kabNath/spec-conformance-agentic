@@ -25,7 +25,7 @@ stack-agnostic and carried over; everything else is built on this stack.
 | **CI/CD** | GitHub Actions: verify (ci.yml) + real deploy (deploy.yml) | real, OIDC |
 | **AWS** | App Runner (app + vidimus) + RDS Postgres, via Terraform | IaC in infra/terraform |
 
-**Retrieval approach:** vectorless clause-graph navigation (Neo4j) as the primary path, with vector similarity (Qdrant) as a fallback — not naïve RAG.
+**Retrieval:** vectorless clause-graph navigation over Neo4j as the primary path, with Qdrant vector similarity as a fallback — not naïve chunk-and-embed RAG.
 
 ## Architecture
 
