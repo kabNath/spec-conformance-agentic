@@ -1,6 +1,6 @@
 # Spec Conformance Agent — agentic stack
 
-[![CI](https://github.com/kabNath/spec-conformance-agentic/actions/workflows/ci.yml/badge.svg)](https://github.com/kabNath/spec-conformance-agentic/actions/workflows/ci.yml)
+[![CI](https://github.com/kabNath/spec-conformance-agentic/actions/workflows/ci.yml/badge.svg)](https://github.com/kabNath/spec-conformance-agentic/actions/workflows/ci.yml) [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ![Demo](docs/demo.gif)
 
