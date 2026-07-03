@@ -1,5 +1,6 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
-pynacl>=1.5
-# Your published library (adds real attest()/verify() + judges + Merkle proofs):
-# git+https://github.com/kabNath/vidimus.git
+# Published trust-layer library — provides the real calibrated-uncertainty and
+# Ed25519 attestation primitives this service composes (bootstrap_ci,
+# canonicalize, sign_hex, KeyPair). Brings pydantic + cryptography + numpy.
+vidimus @ git+https://github.com/kabNath/vidimus.git
