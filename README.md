@@ -1,11 +1,11 @@
-# Spec Conformance Agent — agentic stack
+# Spec Conformance Agent (agentic stack)
 
 [![CI](https://github.com/kabNath/spec-conformance-agentic/actions/workflows/ci.yml/badge.svg)](https://github.com/kabNath/spec-conformance-agentic/actions/workflows/ci.yml) [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ![Demo](docs/demo.gif)
 
 A 3GPP/O-RAN **document-level** conformance engine on a full modern agentic-SaaS
-stack. **Every tool has an explicit, working role** — nothing is a placeholder.
+stack. **Every tool has an explicit, working role**, nothing is a placeholder.
 The moat modules (`lib/parser-3gpp.ts`, `lib/conformance-contract.ts`) are
 stack-agnostic; everything else is built on this stack.
 
@@ -13,7 +13,7 @@ stack-agnostic; everything else is built on this stack.
 
 Verifying a device implementation against a 3GPP specification is manual and slow:
 an engineer cross-reads thousands of clauses to judge whether each requirement is met.
-This tool produces that first pass automatically — it ingests the spec plus the
+This tool produces that first pass automatically, it ingests the spec plus the
 implementation docs and returns an auditable **conformance matrix** where every verdict
 cites the exact governing clause.
 
@@ -35,7 +35,7 @@ cites the exact governing clause.
 | **CI/CD** | GitHub Actions: ci.yml (node + vidimus-svc checks); deploy.yml (manual, workflow_dispatch) | real, OIDC |
 | **AWS** | App Runner (app + vidimus) + RDS Postgres, via Terraform | IaC in infra/terraform |
 
-**Retrieval:** vectorless clause-graph navigation over Neo4j as the primary path, with Qdrant vector similarity as a fallback — not naïve chunk-and-embed RAG.
+**Retrieval:** vectorless clause-graph navigation over Neo4j as the primary path, with Qdrant vector similarity as a fallback, not naïve chunk-and-embed RAG.
 
 ## Architecture
 
@@ -77,7 +77,7 @@ requires AWS credentials: run `terraform apply`, then add the GitHub secrets.
     #    builds and pushes both images to ECR and starts App Runner. The app is
     #    then live at app_url.
 
-End-to-end deploy: OIDC (no long-lived keys), ECR, App Runner, RDS — no stubs.
+End-to-end deploy: OIDC (no long-lived keys), ECR, App Runner, RDS, no stubs.
 `terraform apply` and the GitHub secrets require an AWS account.
 
 ## Honest status
