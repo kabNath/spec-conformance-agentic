@@ -1,0 +1,47 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # required for AWS OIDC
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC, no long-lived keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}   # from terraform output github_deploy_role_arn
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push app image
+        run: |
+          IMG=${{ steps.ecr.outputs.registry }}/spec-conformance-app:latest
+          docker build -t "$IMG" .
+          docker push "$IMG"
+
+      - name: Build & push vidimus image
+        run: |
+          IMG=${{ steps.ecr.outputs.registry }}/spec-conformance-vidimus:latest
+          docker build -t "$IMG" ./vidimus-svc
+          docker push "$IMG"
+
+      # App Runner auto_deployments_enabled=true redeploys on ECR push, but we
+      # trigger explicitly so the run waits and fails loudly on a bad deploy.
+      - name: Trigger App Runner deployments
+        run: |
+          aws apprunner start-deployment --service-arn "${{ secrets.APPRUNNER_APP_ARN }}"
+          aws apprunner start-deployment --service-arn "${{ secrets.APPRUNNER_VIDIMUS_ARN }}"

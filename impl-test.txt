@@ -1,0 +1,11 @@
+Implementation Conformance Statement — NR UE (vendor build 24.7)
+Scope: RRC connection control behaviours for the NR Uu interface.
+
+3.1  RRC connection establishment
+Upon initiating RRC connection establishment, the UE applies the default configuration and sets the contents of the RRCSetupRequest message according to the stored parameters. Establishment is attempted only after successful cell selection.
+
+3.2  RRC connection reconfiguration
+Upon receiving an RRCReconfiguration message, the UE transmits the RRCReconfigurationComplete message immediately, before the new configuration has been applied, in order to minimise latency.
+
+3.3  Connection re-establishment on failure
+If RRC connection establishment fails, the UE initiates an RRC connection re-establishment procedure.

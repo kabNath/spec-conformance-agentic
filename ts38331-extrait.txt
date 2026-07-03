@@ -1,0 +1,11 @@
+5  Procedures
+This clause specifies the RRC procedures for the NR Uu interface, including connection control, measurement configuration and mobility. The overall protocol architecture is described in TS 38.300.
+
+5.3  RRC connection control
+RRC connection control procedures govern the establishment, modification, suspension and release of an RRC connection. The UE shall support the procedures defined in this clause when operating in RRC_CONNECTED.
+
+5.3.3  RRC connection establishment
+The purpose of this procedure is to establish an RRC connection and signalling radio bearer SRB1. Upon initiation, the UE shall apply the default configuration and shall set the contents of the RRCSetupRequest message according to the stored parameters. The UE should perform this procedure only after successful cell selection. If the establishment fails, the UE may initiate an RRC connection re-establishment. The reconfiguration of the resulting connection is handled as specified in subclause 5.3.5.
+
+5.3.5  RRC connection reconfiguration
+The purpose of this procedure is to modify an established RRC connection, for example to establish, modify or release radio bearers and to perform handover. The UE shall perform the reconfiguration and shall not initiate transmission of the RRCReconfigurationComplete message until the new configuration has been applied. The network should include only the fields required for the delta configuration. Failure handling reuses the establishment logic defined in clause 5.3.3. Additional cross-layer requirements are defined in TS 38.300.

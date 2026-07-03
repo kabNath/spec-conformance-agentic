@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body { background: #ffffff; color: #1f262b; }
+  body { font-family: "Inter", "Noto Sans TC", system-ui, sans-serif; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, .serif, .font-serif { font-family: "Karma", "Noto Serif TC", Georgia, serif; }
+  ::selection { background: rgba(108, 182, 239, .28); }
+}
+
+@layer components {
+  /* ── Buttons ─────────────────────────────────────────────── */
+  .btn-accent { @apply inline-flex items-center justify-center rounded-lg bg-accent font-semibold px-5 py-2.5 text-sm transition; color: #0f160e; }
+  .btn-accent:hover { background: #4a9ee0; color: #0f160e; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(108, 182, 239, .3); }
+  .btn-ghost  { @apply inline-flex items-center justify-center rounded-lg border border-line-2 text-ink font-semibold px-5 py-2.5 text-sm transition hover:bg-tint; }
+  .btn-tone   { @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-line text-mut text-xs font-mono transition hover:bg-tint hover:text-ink; }
+  .btn-tone-p { @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent text-sm font-semibold transition; color: #0f160e; }
+  .btn-tone-p:hover { background: #4a9ee0; color: #0f160e; }
+
+  /* ── Typo helpers (default = light page) ─────────────────── */
+  .label-mono { @apply font-mono text-[11px] tracking-wider2 uppercase text-mut-2; font-weight: 600; }
+  .label-mono-sm { @apply font-mono text-[9px] tracking-wider2 uppercase text-mut-2; font-weight: 600; }
+  .meta-mono { @apply font-mono text-[10px] text-mut; }
+
+  /* ── Cards = dark slate panels ───────────────────────────── */
+  .card       { background: #2b333d; color: #eef0f2; border: 1px solid rgba(255,255,255,.10); border-radius: 12px; box-shadow: 0 10px 26px rgba(28,35,43,.10); }
+  .card-h     { @apply px-4 py-3 flex items-center gap-2; border-bottom: 1px solid rgba(255,255,255,.09); }
+  .card-t     { @apply font-serif text-sm font-semibold flex-1; color: #f4f3f0; }
+  .card-s     { @apply font-mono text-[9px] tracking-wider2 uppercase; color: #9aa3ad; }
+  .card-b     { @apply p-4; }
+
+  /* Remap utilities used *inside* cards to dark-panel-appropriate values.
+     Scoped to .card so page-level (light) usage is untouched. */
+  .card .text-ink, .card .text-ink-2 { color: #f4f3f0 !important; }
+  .card .text-mut, .card .text-mut-2 { color: #9aa3ad !important; }
+  .card .text-accent-dark { color: #8fc7f2 !important; }
+  .card .text-green { color: #8fe0a1 !important; }
+  .card .text-redink { color: #ec9a82 !important; }
+  .card .text-amber { color: #f0c14e !important; }
+  .card .text-sky { color: #9bbcec !important; }
+  .card .label-mono, .card .label-mono-sm, .card .meta-mono { color: #9aa3ad !important; }
+  .card .bg-white, .card .bg-tint { background-color: rgba(255,255,255,.05) !important; }
+  .card .bg-green-soft { background-color: rgba(126,224,160,.14) !important; }
+  .card .bg-accent-soft { background-color: rgba(108,182,239,.14) !important; }
+  .card .bg-sky-soft { background-color: rgba(155,188,236,.12) !important; }
+  .card .bg-redink-soft { background-color: rgba(236,154,130,.12) !important; }
+  .card .bg-amber-soft { background-color: rgba(240,193,78,.14) !important; }
+  .card .border-line, .card .border-line-2 { border-color: rgba(255,255,255,.12) !important; }
+  .card .divide-line > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255,255,255,.09) !important; }
+  .card .btn-ghost { color: #e7eaed; border-color: rgba(255,255,255,.18); }
+  .card .btn-ghost:hover { background: rgba(255,255,255,.06); }
+  .card hr, .card .border-b, .card .border-t { border-color: rgba(255,255,255,.10) !important; }
+
+  /* ── Inputs: light by default; dark-friendly inside cards ─ */
+  .input { @apply w-full rounded-lg border border-line-2 bg-white px-3 py-2 text-sm outline-none transition; }
+  .input:focus { border-color: #6cb6ef; box-shadow: 0 0 0 3px rgba(108,182,239,.18); }
+  .card .input { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.16); color: #f1f3f5; }
+  .card .input::placeholder { color: #7e8893; }
+  .card .input option { color: #1f262b; }
+
+  /* ── Pills (status badges) ───────────────────────────────── */
+  .pill       { @apply inline-flex items-center justify-center gap-1.5 font-mono text-[11px] px-2.5 py-1 rounded-md border whitespace-nowrap; font-weight: 600; }
+  .pill-dot   { @apply w-1.5 h-1.5 rounded-full; background: currentColor; }
+  /* Verdict badges: distinct hues; badges hug their text (whitespace-nowrap keeps
+     "needs review" on one line). Colors tuned to read on the slate card. */
+  .pill-ok    { @apply pill; color: #7ee0a0; background: rgba(126,224,160,.15); border-color: rgba(126,224,160,.34); }
+  .pill-err   { @apply pill; color: #f2a486; background: rgba(242,164,134,.15); border-color: rgba(242,164,134,.36); }
+  .pill-warn  { @apply pill; color: #f0c14e; background: rgba(240,193,78,.16); border-color: rgba(240,193,78,.42); }
+  .pill-mut   { @apply pill; color: #9aa3ad; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); }
+  .pill-info  { @apply pill; color: #9bbcec; background: rgba(155,188,236,.14); border-color: rgba(155,188,236,.34); }
+
+  /* ── Summary cards (light page) — tinted, semantic ───────── */
+  .sum          { @apply rounded-lg border p-3 text-center; min-width: 7rem; }
+  .sum-num      { @apply text-2xl font-semibold leading-none mt-1; }
+  .sum-neutral  { background: #fff;    border-color: #e7e1d4; }              .sum-neutral .sum-num { color: #1f262b; }
+  .sum-ok       { background: #e6f0e9; border-color: rgba(47,125,91,.28); }  .sum-ok .sum-num      { color: #2F7D5B; }
+  .sum-err      { background: #f6e7e1; border-color: rgba(168,67,43,.28); }  .sum-err .sum-num     { color: #A8432B; }
+  .sum-warn     { background: #f7edd6; border-color: rgba(176,125,26,.34); } .sum-warn .sum-num    { color: #8a5f14; }
+
+  /* ── Stat cards = dark, centered ─────────────────────────── */
+  .stat       { position: relative; background: #2b333d; border: 1px solid rgba(255,255,255,.10); border-radius: 12px; padding: 20px; overflow: hidden; text-align: center; box-shadow: 0 10px 26px rgba(28,35,43,.10); }
+  .stat::after{ content:""; position:absolute; bottom:0; left:0; right:0; height:2px; }
+  .stat-g::after{ background:#7ee0a0; } .stat-r::after{ background:#ec9a82; }
+  .stat-w::after{ background:#6cb6ef; } .stat-b::after{ background:#9bbcec; }
+  .stat-num   { @apply font-serif text-3xl font-bold leading-none; color: #6cb6ef; }
+  .stat-lbl   { @apply font-mono text-[9px] tracking-wider2 uppercase mt-2; color: #9aa3ad; }
+  .stat-ch    { @apply font-mono text-[10px] mt-1; }
+  .stat-ic    { @apply absolute top-3 right-3 text-lg; opacity: .2; }
+
+  /* ── Notice / banner (light page surfaces) ───────────────── */
+  .notice     { @apply flex gap-3 rounded-lg border px-4 py-3 text-sm leading-relaxed; }
+  .notice-info{ @apply notice bg-sky-soft border-sky/30 text-ink-2; }
+  .notice-warn{ @apply notice border text-ink-2; background: #fdf6e9; border-color: rgba(123,220,143,.0); border: 1px solid #ecdcb8; }
+  .notice-err { @apply notice bg-redink/5 border-redink/30 text-ink-2; }
+  .card .notice-warn { background: rgba(108,182,239,.08); border-color: rgba(108,182,239,.22); color: #d8dde1; }
+  .card .notice-info { color: #d8dde1; }
+
+  /* ── Sidebar (dark) ──────────────────────────────────────── */
+  .sb-section { @apply px-4 pt-3 pb-1 font-mono text-[9px] tracking-wider2 uppercase; color: #6b7480; font-weight: 600; }
+  .sb-item    { @apply flex items-center gap-2.5 mx-2 my-0.5 px-3 py-1.5 rounded-md text-[13px] font-serif transition; color: #c2c8ce; }
+  .sb-item:hover { background: rgba(255,255,255,.06); color: #f4f3f0; }
+  .sb-item-active { background: rgba(108,182,239,.14); color: #8fc7f2; font-weight: 600; }
+}
+
+/* Entrance motion (portfolio easing) */
+.animate-rise { animation: heroIn .55s cubic-bezier(.2,.7,.2,1) both; }
+
+/* ── Landing product demo: upload → analyze → result → export, looping ── */
+.demo-steps { display: flex; gap: 12px; font-family: "Inter", system-ui, sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; flex-wrap: wrap; }
+.demo-step { color: #5f6a75; }
+.demo-step-1 { animation: dstep1 16s infinite; }
+.demo-step-2 { animation: dstep2 16s infinite; }
+.demo-step-3 { animation: dstep3 16s infinite; }
+.demo-step-4 { animation: dstep4 16s infinite; }
+@keyframes dstep1 { 0%,22% { color: #8fc7f2; } 25%,100% { color: #5f6a75; } }
+@keyframes dstep2 { 0%,25% { color: #5f6a75; } 28%,47% { color: #8fc7f2; } 50%,100% { color: #5f6a75; } }
+@keyframes dstep3 { 0%,50% { color: #5f6a75; } 53%,72% { color: #8fc7f2; } 75%,100% { color: #5f6a75; } }
+@keyframes dstep4 { 0%,75% { color: #5f6a75; } 78%,100% { color: #8fc7f2; } }
+
+.demo-stage { position: relative; height: 152px; margin: 14px 0 12px; }
+.demo-scene { position: absolute; inset: 0; opacity: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.demo-scene-1 { animation: dsc1 16s infinite; }
+.demo-scene-2 { animation: dsc2 16s infinite; }
+.demo-scene-3 { animation: dsc3 16s infinite; }
+.demo-scene-4 { animation: dsc4 16s infinite; }
+@keyframes dsc1 { 0% { opacity: 0; transform: translateY(8px); } 3%,22% { opacity: 1; transform: none; } 25%,100% { opacity: 0; } }
+@keyframes dsc2 { 0%,25% { opacity: 0; transform: translateY(8px); } 28%,47% { opacity: 1; transform: none; } 50%,100% { opacity: 0; } }
+@keyframes dsc3 { 0%,50% { opacity: 0; transform: translateY(8px); } 53%,72% { opacity: 1; transform: none; } 75%,100% { opacity: 0; } }
+@keyframes dsc4 { 0%,75% { opacity: 0; transform: translateY(8px); } 78%,97% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+
+.demo-lbl { font-family: "Inter", system-ui, sans-serif; font-size: 11px; color: #9aa3ad; }
+.demo-drop { border: 1px dashed rgba(255,255,255,.22); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.demo-file { display: flex; align-items: center; gap: 9px; font-family: "Inter", system-ui, sans-serif; font-size: 12px; color: #dfe3e7; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 8px 11px; }
+.demo-file::before { content: ""; width: 9px; height: 11px; border-radius: 1px; background: #9aa3ad; flex: none; }
+.demo-dl { margin-left: auto; font-size: 10px; font-weight: 600; color: #8fc7f2; border: 1px solid rgba(143,199,242,.4); border-radius: 6px; padding: 2px 8px; }
+
+.demo-scan { position: relative; overflow: hidden; border-radius: 10px; padding: 8px; background: rgba(255,255,255,.03); display: flex; flex-direction: column; gap: 5px; }
+.demo-cl { font-family: "Inter", system-ui, sans-serif; font-size: 12px; color: #aab1b9; padding: 4px 8px; border-radius: 6px; }
+.demo-sweep { position: absolute; left: 0; right: 0; height: 40px; background: linear-gradient(rgba(108,182,239,0), rgba(108,182,239,.4)); border-bottom: 1.5px solid rgba(143,199,242,.9); box-shadow: 0 0 14px rgba(108,182,239,.45); animation: dsweep 1.8s ease-in-out infinite; }
+@keyframes dsweep { 0% { top: -40px; } 100% { top: 100%; } }
+
+.demo-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.demo-bar { height: 2px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
+.demo-bar > i { display: block; height: 100%; background: #6cb6ef; transform-origin: left; animation: dbar 16s linear infinite; }
+@keyframes dbar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-scene, .demo-step-1, .demo-step-2, .demo-step-3, .demo-step-4, .demo-sweep, .demo-bar > i { animation: none !important; }
+  .demo-scene-1, .demo-scene-2, .demo-scene-4 { display: none; }
+  .demo-scene-3 { opacity: 1; }
+  .demo-step-3 { color: #8fc7f2; }
+}

@@ -1,0 +1,76 @@
+// Prisma schema — PostgreSQL. Tenancy is by `orgId` (a Clerk Organization id):
+// every query MUST filter on orgId, since we no longer have Supabase RLS.
+// See lib/tenant.ts for the enforced-scoping helper.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id            // Clerk organization id (org_...)
+  name      String
+  plan      String   @default("free")
+  createdAt DateTime @default(now())
+  assets    Asset[]
+  runs      ConformanceRun[]
+}
+
+model Asset {
+  id            String   @id @default(uuid())
+  orgId         String
+  org           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  kind          String   // "standard" | "implementation"
+  name          String
+  spec          String?  // "TS 38.331"
+  version       String?  // "18.3.0"
+  release       String?  // "Rel-18"
+  cloudinaryUrl String?  // raw upload (Cloudinary)
+  createdAt     DateTime @default(now())
+
+  @@index([orgId])
+}
+
+model ConformanceRun {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name            String
+  targetRelease   String?
+  status          String   @default("queued") // queued|running|complete|failed
+  reviewThreshold Float    @default(0.75)
+  summary         Json?
+  createdBy       String?  // Clerk user id
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+  requirements    EvaluatedRequirement[]
+
+  @@index([orgId])
+}
+
+model EvaluatedRequirement {
+  id            String   @id @default(uuid())
+  runId         String
+  run           ConformanceRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  orgId         String
+  requirement   String
+  source        Json
+  citations     Json     // ClauseCitation[]
+  verdict       String
+  normative     String   @default("none")
+  confidence    Float
+  verifier      Json
+  review        Json
+  gapNote       String?
+  retrievalPath Json?
+  attestation   Json?
+  model         String?
+  evaluatedAt   DateTime @default(now())
+
+  @@index([runId])
+  @@index([orgId])
+}

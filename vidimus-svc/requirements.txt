@@ -1,0 +1,5 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pynacl>=1.5
+# Your published library (adds real attest()/verify() + judges + Merkle proofs):
+# git+https://github.com/kabNath/vidimus.git

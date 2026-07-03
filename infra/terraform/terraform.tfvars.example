@@ -1,0 +1,10 @@
+db_password           = "change-me-strong"
+clerk_publishable_key = "pk_live_..."
+clerk_secret_key      = "sk_live_..."
+openrouter_api_key    = "sk-or-..."
+qdrant_url            = "https://xxx.cloud.qdrant.io:6333"   # Qdrant Cloud
+qdrant_api_key        = "..."
+neo4j_uri             = "neo4j+s://xxx.databases.neo4j.io"    # Neo4j Aura
+neo4j_password        = "..."
+cloudinary_url        = "cloudinary://key:secret@cloud"
+github_repo           = "kabNath/spec-conformance-agentic"
