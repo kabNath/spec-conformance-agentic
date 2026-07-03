@@ -21,7 +21,7 @@ async function main() {
   const tree = parseSpec(text, { spec, version, release });
 
   // 1) Neo4j — nodes + CHILD + XREF edges (the graph-walk substrate).
-  const session = driver.session();
+  const session = driver().session();
   try {
     for (const id of tree.order) {
       const n = tree.nodes[id];
@@ -54,7 +54,7 @@ async function main() {
   });
   const ids = tree.order;
   const vectors = await embedder.embedDocuments(ids.map((id) => `${id} ${tree.nodes[id].title}\n${tree.nodes[id].text.slice(0, 800)}`));
-  await qdrant.upsert(CLAUSE_COLLECTION, {
+  await qdrant().upsert(CLAUSE_COLLECTION, {
     points: ids.map((id, i) => ({
       id: pointId(`${orgId}:${standardId}:${id}`),
       vector: vectors[i],
