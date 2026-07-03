@@ -30,7 +30,7 @@ cites the exact governing clause.
 | **LangGraph** | Bounded pipeline as a state machine | implemented |
 | **LangChain** | LLM / embeddings / store plumbing | implemented |
 | **Cloudinary** | Raw uploaded-document storage | implemented |
-| **Vidimus** | Calibrated confidence + Ed25519-signed attestation (sidecar) | implemented using [kabNath/vidimus](https://github.com/kabNath/vidimus) (bootstrap CI, RFC 8785, Ed25519) |
+| **Vidimus** | Calibrated confidence + Ed25519-signed attestation (sidecar) | implemented using [kabNath/vidimus](https://github.com/kabNath/vidimus) |
 | **Docker** | Local parity (docker-compose) + on-prem deliverable | Dockerfiles |
 | **CI/CD** | GitHub Actions: ci.yml (node + vidimus-svc checks); deploy.yml (manual, workflow_dispatch) | real, OIDC |
 | **AWS** | App Runner (app + vidimus) + RDS Postgres, via Terraform | IaC in infra/terraform |
