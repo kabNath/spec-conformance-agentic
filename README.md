@@ -21,7 +21,7 @@ cites the exact governing clause.
 
 | Tool | Role in THIS product | Real? |
 |---|---|---|
-| **Next.js 15** | App framework — UI + API routes | implemented |
+| **Next.js 15** | App framework (UI + API routes) | implemented |
 | **Clerk** | Auth + multi-tenancy (Organization = tenant) | implemented |
 | **PostgreSQL + Prisma** | Relational store (runs, requirements, assets) | implemented |
 | **Qdrant** | Vector store for the vector fallback | implemented |
