@@ -1,4 +1,4 @@
-# Spec Conformance Agent — agentic stack (Chemin B)
+# Spec Conformance Agent — agentic stack
 
 A 3GPP/O-RAN **document-level** conformance engine on a full modern agentic-SaaS
 stack. **Every tool has an explicit, working role** — nothing is a placeholder.
@@ -22,6 +22,8 @@ stack-agnostic and carried over; everything else is built on this stack.
 | **Docker** | Local parity (docker-compose) + on-prem deliverable | Dockerfiles |
 | **CI/CD** | GitHub Actions: verify (ci.yml) + real deploy (deploy.yml) | real, OIDC |
 | **AWS** | App Runner (app + vidimus) + RDS Postgres, via Terraform | IaC in infra/terraform |
+
+**Retrieval approach:** vectorless clause-graph navigation (Neo4j) as the primary path, with vector similarity (Qdrant) as a fallback — not naïve RAG.
 
 ## Architecture
 
