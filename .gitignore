@@ -28,3 +28,8 @@ infra/terraform/terraform.tfvars
 
 # OS / editor cruft
 .DS_Store
+
+# 3GPP spec source (© 3GPP/ETSI) — local input, not redistributed
+*.docx
+examples/ts38331-source.txt
+examples/ts38331-extract.txt
