@@ -1,0 +1,23 @@
+node_modules
+.next
+
+# Build artifacts
+*.tsbuildinfo
+
+# Environment & secrets — never commit real keys
+.env
+.env.*
+!.env.example
+
+# Terraform — state and tfvars can hold plaintext secrets
+*.tfstate
+*.tfstate.*
+infra/terraform/terraform.tfvars
+.terraform/
+
+# Keys / certificates
+*.pem
+*.key
+
+# OS / editor cruft
+.DS_Store
