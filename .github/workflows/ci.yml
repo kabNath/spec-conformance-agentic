@@ -2,6 +2,7 @@ name: ci
 on: [push, pull_request]
 jobs:
   build:
+    name: node (typecheck + build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -11,3 +12,17 @@ jobs:
       - run: npx prisma generate
       - run: npm run typecheck
       - run: npm run build
+
+  # Runs in parallel with `build` (no `needs:`); its status is a separate,
+  # independently-visible check — a failure here goes red on its own.
+  vidimus-svc:
+    name: vidimus-svc (/attest smoke test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install service deps (real vidimus lib) + test client
+        run: pip install -r vidimus-svc/requirements.txt httpx
+      - name: Test /attest — HTTP 200 + valid Ed25519 signature
+        run: python vidimus-svc/test_attest.py
