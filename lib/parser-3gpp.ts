@@ -13,9 +13,10 @@
 
 import type { NormativeKeyword } from "./conformance-contract";
 
-// A clause heading like "5.3.5.1  Random access procedure initialization"
-// 3GPP headings are a dotted number, 2+ spaces, then a title.
-const CLAUSE_RE = /^(\d+(?:\.\d+)*)\s{2,}(.+?)\s*$/;
+// A clause heading: a dotted number, then a TAB (real .docx→text output) or
+// 2+ spaces (plain-text specs), then the title. The title carries no further
+// TAB — that rejects table-of-contents lines, which are "num<TAB>title<TAB>page".
+const CLAUSE_RE = /^(\d+(?:\.\d+)*)(?:\t| {2,})([^\t]+?)\s*$/;
 
 // Normative keywords, in priority order (strongest first).
 const NORMATIVE_PATTERNS: { kw: NormativeKeyword; re: RegExp }[] = [
@@ -26,10 +27,11 @@ const NORMATIVE_PATTERNS: { kw: NormativeKeyword; re: RegExp }[] = [
   { kw: "may",        re: /\bmay\b/i },
 ];
 
-// Cross-references: "clause 5.5.3", "subclause 5.3.5", "TS 38.300",
-// "as defined in 38.331 [5]".  We capture both intra-doc clause refs
-// and inter-doc spec refs.
-const XREF_CLAUSE_RE = /\b(?:sub)?clause\s+(\d+(?:\.\d+)+)/gi;
+// Cross-references. Intra-doc clause refs appear as "clause 5.5.3",
+// "subclause 5.3.5", "see 5.3.3", or "... in 5.3.5.3" (cascading refs are
+// common in 3GPP). Inter-doc refs are "TS 38.300". Targets that do not exist
+// in the tree are dropped later when wiring edges, so the trigger set is broad.
+const XREF_CLAUSE_RE = /\b(?:(?:sub)?clause|see|in)\s+(\d+(?:\.\d+)+)/gi;
 const XREF_SPEC_RE = /\bTS\s?(\d{2}\.\d{3}(?:-\d+)?)/gi;
 
 export interface ClauseNode {
@@ -95,9 +97,15 @@ export function parseSpec(
     const m = CLAUSE_RE.exec(line);
     if (m) {
       const clause = m[1];
-      // Guard against decimals that are not headings (e.g. "3.14 seconds"):
-      // real headings sit on their own line and the title is non-empty prose.
-      heads.push({ clause, title: m[2].trim(), depth: clause.split(".").length, at: offset });
+      const title = m[2].trim();
+      // Keep real headings; reject front-matter numbered lists like
+      // "1  presented to TSG for information;". A genuine heading is either a
+      // dotted clause id, or a top-level id whose title is Title-cased. Deep
+      // clauses whose title starts lowercase (e.g. "sk-Counter ...") are kept
+      // via the dotted-id branch.
+      if (title && (clause.includes(".") || /^[A-Z(]/.test(title))) {
+        heads.push({ clause, title, depth: clause.split(".").length, at: offset });
+      }
     }
     offset += line.length + 1; // +1 for the stripped "\n"
   }
