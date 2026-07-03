@@ -1,8 +1,6 @@
 name: deploy
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_dispatch:   # manual trigger only — no auto-deploy on push
 
 permissions:
   id-token: write   # required for AWS OIDC
