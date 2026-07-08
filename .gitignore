@@ -33,3 +33,6 @@ infra/terraform/terraform.tfvars
 *.docx
 examples/ts38331-source.txt
 examples/ts38331-extract.txt
+
+# Eval harness transient output (the pinned run1/run2 artifacts ARE committed)
+eval/results.json

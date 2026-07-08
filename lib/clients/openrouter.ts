@@ -17,11 +17,24 @@ function llm(): ChatOpenAI {
   }));
 }
 
+// Lightweight, opt-in usage meter. Off the hot path (a couple of adds per call);
+// the eval harness reads it to report real token counts + cost. Production code
+// never inspects it, so this changes no behaviour.
+export const llmStats = {
+  calls: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  reset() { this.calls = 0; this.inputTokens = 0; this.outputTokens = 0; },
+};
+
 async function callJSON<T>(system: string, user: string): Promise<T> {
   const res = await llm().invoke([
     { role: "system", content: system },
     { role: "user", content: user },
   ]);
+  llmStats.calls++;
+  const u = (res as unknown as { usage_metadata?: { input_tokens?: number; output_tokens?: number } }).usage_metadata;
+  if (u) { llmStats.inputTokens += u.input_tokens ?? 0; llmStats.outputTokens += u.output_tokens ?? 0; }
   return JSON.parse(extractJSON(String(res.content))) as T;
 }
 
