@@ -80,6 +80,32 @@ requires AWS credentials: run `terraform apply`, then add the GitHub secrets.
 End-to-end deploy: OIDC (no long-lived keys), ECR, App Runner, RDS, no stubs.
 `terraform apply` and the GitHub secrets require an AWS account.
 
+## Evaluation
+
+[`eval/gold-set.json`](eval/gold-set.json) is a **40-item expert-validated benchmark for
+document-level 3GPP conformance** — atomic requirements over a 266-clause TS 38.331 v19.3.0
+extract, each with a human-validated verdict (17 conformant / 16 gap / 7 insufficient) and
+governing clause, tagged easy/medium/hard. Reference verdicts are human-validated in a
+four-batch protocol; the same model is never both examinee and examiner. Scored by
+[`scripts/eval.ts`](scripts/eval.ts). Full methodology, failure analysis, and a two-run
+stability study are in **[EVAL.md](EVAL.md)**.
+
+Headline numbers (run 1 of 2, `claude-sonnet-4.6`, temp 0, cost $0.52), reported honestly:
+
+| result | value | reading |
+|---|--:|---|
+| Verdict accuracy (N=40, incl. 2 system errors) | **67.5%** | 71.1% over the 38 verdict-producing items |
+| **Verdict accuracy given the right clause** | **92.6%** | judgement is strong… |
+| Verdict accuracy given the wrong clause | **18.2%** | …**retrieval is the bottleneck**, not reasoning |
+| **Committed profile** | **87.5% @ 63% coverage** | trustworthy *when it answers*; abstains on 37% |
+| Silent error rate (wrong AND committed) | **3/40 = 7.5%** | one dangerous false `gap` (R10); rest are safe under-calls |
+| Run-to-run verdict agreement | **~95–97%** | both flips absorbed by review-gating |
+
+The dominant error mode is a **conservative bias** — when retrieval can't ground a `gap`,
+the system returns `insufficient` and routes to review rather than asserting a verdict it
+can't cite. That costs `gap` recall (50%) but keeps `gap` precision high (88.9%) — the
+right direction to be wrong in for a tool whose verdicts carry liability.
+
 ## Honest status
 
 - Implemented and defensible line-by-line: the LangGraph pipeline, the vectorless
@@ -88,12 +114,9 @@ End-to-end deploy: OIDC (no long-lived keys), ECR, App Runner, RDS, no stubs.
   and the OIDC deploy workflow.
 - Going live requires AWS credentials: `terraform apply` against an AWS account plus
   the GitHub secrets. Until then the system is complete but not on a live URL.
-- Evaluation: [`eval/gold-set.json`](eval/gold-set.json) is a **40-item expert-validated
-  benchmark for document-level 3GPP conformance** — atomic requirements over a 266-clause
-  TS 38.331 v19.3.0 extract, each with a human-validated verdict and governing clause.
-  It is scored by [`scripts/eval.ts`](scripts/eval.ts) (precision / recall / F1, confusion
-  matrix, clause-retrieval accuracy, review-gating analysis); methodology and results are
-  in [EVAL.md](EVAL.md).
+- Evaluation: measured against a 40-item expert-validated benchmark — see the
+  [Evaluation](#evaluation) section and [EVAL.md](EVAL.md). Retrieval, not judgement, is
+  the bottleneck; committed verdicts run 87.5% accurate at 63% coverage.
 - Polyglot persistence is a deliberate architecture choice: Neo4j is the central
   technical fit (clause-graph navigation), Qdrant is a fallback only, and Postgres
   holds relational run/matrix data.

@@ -184,13 +184,26 @@ coverage for precision — the product's safety knob.
 | | value |
 |---|--:|
 | Raw accuracy (ungated) | 27/38 = 71.1% |
-| Coverage (committed, not flagged) | 24/38 = 63.2% |
+| Coverage (committed, not flagged) | 24/38 = **63.2%** |
 | **Committed accuracy** (trust when it answers) | 21/24 = **87.5%** |
 | Abstentions | 14 — **8 suppressed a wrong verdict** (good), 6 withheld a correct one (cost) |
-| **Silent errors** (wrong AND committed — the dangerous class) | **3** (R06, R10, R17) |
+| **Silent errors** (wrong AND committed — the dangerous class) | **3/40 = 7.5%** (R06, R10, R17) |
 
-Gating lifts precision from 71.1% → 87.5% and catches 8 of the 11 wrong verdicts. Three
-slip through committed; only one (R10) is a false *gap*, the rest are safe under-calls.
+The committed profile is **87.5% accuracy at 63% coverage** — the two numbers are
+inseparable: gating lifts precision from 71.1% → 87.5% *only because* it declines to answer
+on 37% of items (the other 14 go to review). Reading either figure without the other is
+meaningless. Of the wrong verdicts, gating catches 8 of 11; the remaining **silent error
+rate is 3/40 = 7.5%** (R06, R10, R17). Two are safe under-calls into `insufficient`; the
+one genuinely dangerous case is **R10** — a false `gap`.
+
+**R10 as the safety case study.** It is a *complete failure of the net*: the assessor
+committed the wrong `gap` at confidence **0.95**, and the independent adversarial verifier
+**agreed** (0.92), so neither the confidence gate nor the verifier gate fired. Both judges
+read a spurious citation (§5.3.5.3, attached to an out-of-scope audit-logging requirement)
+and rationalised the same verdict. Redundant LLM judges do not help when they share the
+same wrong premise. The mitigation is not another judge but a **grounding check** — verify
+the cited clause is topically on-subject before a `gap` is allowed to commit; this is
+identified future work (see *Threats to validity*).
 
 ### Confusion matrix (N=38, rows = human reference, cols = predicted)
 
@@ -391,3 +404,15 @@ The forthcoming `extractJSON` fix removes the R26/R21/R31 error class outright.
   output bit-stable. The evaluation was run twice; verdicts agreed ~95–97% run-to-run and
   two items flipped (both absorbed by review-gating) — see *Run-to-run stability*. Headline
   numbers can still drift a few points between runs, so treat them as a band, not a point.
+
+**Identified fixes (future work), ranked by the analysis above:**
+
+1. **Grounding check before a committed `gap`** — verify the cited clause is topically
+   on-subject for the requirement. Directly targets R10, the only committed false `gap`,
+   where redundant judges shared a spurious citation. This is the highest-value fix.
+2. **Widen / re-center the citation window** (currently 500 chars) — recovers R06/R08,
+   where the correct clause was retrieved but the relevant sentence was clipped.
+3. **Strengthen the retrieval navigator** — retrieval, not judgement, is the bottleneck
+   (verdict accuracy 92.6% given a good clause vs. 18.2% without). Reducing the 7 retrieval
+   misses would lift `gap` recall the most.
+4. **`extractJSON` multi-object hardening** — already fixed in `deb282d`.
