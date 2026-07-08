@@ -88,8 +88,12 @@ End-to-end deploy: OIDC (no long-lived keys), ECR, App Runner, RDS, no stubs.
   and the OIDC deploy workflow.
 - Going live requires AWS credentials: `terraform apply` against an AWS account plus
   the GitHub secrets. Until then the system is complete but not on a live URL.
-- Current validation: end-to-end on a small TS 38.331 extract; a rigorous evaluation
-  (gold set, precision/recall vs. expert-labeled requirements) is the next milestone.
+- Evaluation: [`eval/gold-set.json`](eval/gold-set.json) is a **40-item expert-validated
+  benchmark for document-level 3GPP conformance** — atomic requirements over a 266-clause
+  TS 38.331 v19.3.0 extract, each with a human-validated verdict and governing clause.
+  It is scored by [`scripts/eval.ts`](scripts/eval.ts) (precision / recall / F1, confusion
+  matrix, clause-retrieval accuracy, review-gating analysis); methodology and results are
+  in [EVAL.md](EVAL.md).
 - Polyglot persistence is a deliberate architecture choice: Neo4j is the central
   technical fit (clause-graph navigation), Qdrant is a fallback only, and Postgres
   holds relational run/matrix data.
