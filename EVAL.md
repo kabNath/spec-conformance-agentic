@@ -638,6 +638,66 @@ How to read it:
   All three other non-empty tranches still have fewer than 10 items, so 28 of 80 predictions are answered `calibrated: false` and routed to human review.
 - The same 40 items were used to design the guards and to calibrate; the intervals are item-level but ignore that dependence.
 
+## Ablation des gardes, rejeu hors ligne
+
+**What this is.** The two committed v2 passes keep, for every item, the assessor's verdict and quote *before* any guard (`raw_verdict`, `assessor_quote`). The two guards
+are replayed offline on those stored outputs in four configurations — (a) none, (b) verbatim check only, (c) gap guard only, (d) both — by
+[`scripts/eval-ablation.ts`](scripts/eval-ablation.ts) from the sanitised files. Check — configuration (d) reproduces the recorded v2 outcome (verdict, committed or not, reason) for 80/80 items in both passes.
+
+**What is NOT replayed.** Everything upstream of the guards keeps its v2 value in all four rows: the assessor prompt (asks for a quote), the 4000-character citation window,
+retrieval, the `extractJSON` fix and the verifier model. The ablation therefore says what the *guards* did, and nothing about those other changes.
+
+**Fresh verifier calls.** The adversarial verifier answers about a given verdict; where a configuration puts a verdict in front of it that the run never did (the raw `gap` of
+R10, R14, R20, R30 and the raw `conformant` of R28), its answer comes from a fresh call to the same verifier (`google/gemini-3.8-flash`, pin `google-vertex`, no assessor call):
+**10 calls** (5 per pass), stored as booleans in [`eval/ablation-verifier-calls.json`](eval/ablation-verifier-calls.json). Their cost and provider records could not be
+retrieved from OpenRouter (lookups returned 404); at roughly 1.3k input tokens per call the cost is on the order of 0.01–0.02 USD, far below the 0.5 USD cap, but it was not measured.
+Those answers are single temperature-0 samples; a rerun could differ.
+
+**Definitions.** Committed = not sent to review. Gap recall = true gaps committed / 16 gold gaps; gap precision = true gaps / committed gaps; conformant recall = items whose final
+verdict is `conformant` / 17 gold conformant. 95 % Wilson intervals; the two passes use the same items, so they are not independent.
+
+| configuration | pass | accuracy N=40 | coverage | committed accuracy [Wilson 95 %] | silent errors (committed and wrong) | conformant recall | gap recall (true gaps committed / gold gaps) | gap precision (true / committed gaps) | false gaps committed |
+|---|---|---|---|---|---|---|---|---|---|
+| (a) no guard | 1 | 24/40 = 60.0 % [45–74] | 26/40 = 65.0 % [50–78] | 22/26 = 84.6 % [66–94] | R10(insufficient→gap), R20(insufficient→gap), R25(gap→insufficient), R30(insufficient→gap) | 12/17 = 70.6 % [47–87] | 8/16 = 50.0 % [28–72] | 8/11 = 72.7 % [43–90] | R10, R20, R30 |
+| (a) no guard | 2 | 25/40 = 62.5 % [47–76] | 26/40 = 65.0 % [50–78] | 23/26 = 88.5 % [71–96] | R10(insufficient→gap), R11(conformant→insufficient), R30(insufficient→gap) | 12/17 = 70.6 % [47–87] | 9/16 = 56.3 % [33–77] | 9/11 = 81.8 % [52–95] | R10, R30 |
+| (b) verbatim check only | 1 | 23/40 = 57.5 % [42–71] | 25/40 = 62.5 % [47–76] | 21/25 = 84.0 % [65–94] | R10(insufficient→gap), R20(insufficient→gap), R25(gap→insufficient), R30(insufficient→gap) | 11/17 = 64.7 % [41–83] | 8/16 = 50.0 % [28–72] | 8/11 = 72.7 % [43–90] | R10, R20, R30 |
+| (b) verbatim check only | 2 | 24/40 = 60.0 % [45–74] | 25/40 = 62.5 % [47–76] | 22/25 = 88.0 % [70–96] | R10(insufficient→gap), R11(conformant→insufficient), R30(insufficient→gap) | 11/17 = 64.7 % [41–83] | 9/16 = 56.3 % [33–77] | 9/11 = 81.8 % [52–95] | R10, R30 |
+| (c) gap guard only | 1 | 27/40 = 67.5 % [52–80] | 23/40 = 57.5 % [42–71] | 22/23 = 95.7 % [79–99] | R25(gap→insufficient) | 12/17 = 70.6 % [47–87] | 8/16 = 50.0 % [28–72] | 8/8 = 100.0 % [68–100] | none |
+| (c) gap guard only | 2 | 28/40 = 70.0 % [55–82] | 24/40 = 60.0 % [45–74] | 23/24 = 95.8 % [80–99] | R11(conformant→insufficient) | 12/17 = 70.6 % [47–87] | 9/16 = 56.3 % [33–77] | 9/9 = 100.0 % [70–100] | none |
+| (d) both (= v2) | 1 | 26/40 = 65.0 % [50–78] | 22/40 = 55.0 % [40–69] | 21/22 = 95.5 % [78–99] | R25(gap→insufficient) | 11/17 = 64.7 % [41–83] | 8/16 = 50.0 % [28–72] | 8/8 = 100.0 % [68–100] | none |
+| (d) both (= v2) | 2 | 27/40 = 67.5 % [52–80] | 23/40 = 57.5 % [42–71] | 22/23 = 95.7 % [79–99] | R11(conformant→insufficient) | 11/17 = 64.7 % [41–83] | 9/16 = 56.3 % [33–77] | 9/9 = 100.0 % [70–100] | none |
+
+Per item (verdict / outcome under each configuration):
+
+| item (gold) | pass | assessor before guards | (a) no guard | (b) verbatim check only | (c) gap guard only | (d) both (= v2) | which guard changed it |
+|---|---|---|---|---|---|---|---|
+| R11 (conformant) | 1 | insufficient, conf 0.7 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+| R11 (conformant) | 2 | insufficient, conf 0.85 | insufficient / committed | insufficient / committed | insufficient / committed | insufficient / committed | none: the assessor's own output, retrieval and confidence rule |
+| R12 (conformant) | 1 | insufficient, conf 0.2, no clause | insufficient / review: no_clause_found | insufficient / review: no_clause_found | insufficient / review: no_clause_found | insufficient / review: no_clause_found | none: the assessor's own output, retrieval and confidence rule |
+| R12 (conformant) | 2 | insufficient, conf 0.2, no clause | insufficient / review: no_clause_found | insufficient / review: no_clause_found | insufficient / review: no_clause_found | insufficient / review: no_clause_found | none: the assessor's own output, retrieval and confidence rule |
+| R16 (conformant) | 1 | insufficient, conf 0.1 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+| R16 (conformant) | 2 | insufficient, conf 0.1 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+| R28 (conformant) | 1 | conformant, conf 0.99 | conformant / committed | insufficient / review: citation_not_verbatim | conformant / committed | insufficient / review: citation_not_verbatim | verbatim check |
+| R28 (conformant) | 2 | conformant, conf 0.99 | conformant / committed | insufficient / review: citation_not_verbatim | conformant / committed | insufficient / review: citation_not_verbatim | verbatim check |
+| R32 (conformant) | 1 | insufficient, conf 0.55 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+| R32 (conformant) | 2 | insufficient, conf 0.55 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+
+
+### Reading
+
+1. **The gap guard is what stops the false gaps; the other-family verifier alone does not.** Without it ((a), (b)) the pipeline commits false gaps: R10, R20, R30 in pass 1 and R10, R30 in pass 2.
+   The adversarial verifier disagreed on R14 (both passes) and on R20 (pass 2 only) and agreed on R10 and R30. With the gap guard ((c), (d)) no false gap is committed, and true gaps committed are unchanged
+   (8 and 9): the guard blocked no true gap.
+2. **The verbatim check, in this data, only cost correct answers.** Its only trigger in 80 item-runs was R28 (gold `conformant`, assessor `conformant` at 0.99, in both passes): without the check it is a correct,
+   committed verdict ((a), (c)); with it, `insufficient` in review ((b), (d)). It cost one correct committed item per pass (accuracy N=40 −2.5 points, conformant recall −5.9 points). The quote was **not fabricated**: it is
+   3 words long and found verbatim in the clause; it was rejected by the 4-word minimum of the check. That is a false positive of the minimum-length rule, not a caught invention. This ablation cannot show the check's protective value
+   (no fabricated quote occurred), only this cost; no guard was changed.
+3. **R11, R12, R16, R32: none of the guards changed the verdict or the review.** R11: the assessor answered `insufficient` (confidence 0.7 → review in pass 1; 0.85 → committed, silent error, in pass 2). R12: no clause retrieved.
+   R16: `insufficient` at confidence 0.1. R32: `insufficient` at 0.55 with a wrong clause. Identical outcome in (a), (b), (c), (d). R28 is the one guard effect (verbatim check). R14, not in your list, is the gap guard (question (b)).
+4. **Most of the conformant-recall drop is upstream of the guards.** Before any guard ((a)) conformant recall is already 12/17 = 70.6 % [47–87] in both passes, against 88.2 % and 82.4 % in v1; the guards take it to 11/17 (R28). The remaining difference with v1 comes from the
+   assessor's prompt, the window, retrieval or run-to-run variation, none of which is replayed here.
+5. **Accuracy by configuration (N=40, per pass):** (c) 67.5 / 70.0 %, (d) 65.0 / 67.5 %, (a) 60.0 / 62.5 %, (b) 57.5 / 60.0 %. The gap guard raises it (it turns false gaps into correct `insufficient`), the verbatim check lowers it by one item here.
+
 ## Limites de cette évaluation (limits of this evaluation)
 
 This section is about the evaluation of the `GAP_GUARD=verifier` rule (pre-registered in
@@ -663,6 +723,7 @@ Nothing was tuned on the TEST group: prompts, caps and criteria were committed b
 
 ## Changelog
 
+- **v2 ablation (2026-10-06)** — offline replay of the guards (none / verbatim / gap / both), 10 fresh verifier calls; see *Ablation des gardes*.
 - **v2 (2026-10-06)** — citation guards, verifier-confirmed gaps (`GAP_GUARD=verifier`), other-family verifier, sanitised results, v2 regression baseline and recalibrated confidence (`cal-102be0bdb9d1`). Measured on two full passes; pre-registration `ad3175f1`. See *v2*. v1 sections unchanged.
 - **v1.2 (2026-10-06)** — calibration re-done at item level with item-grouped 5-fold cross-validation;
   tranches need ≥ 10 distinct items (only the top one qualifies), others go to human review.
