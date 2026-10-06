@@ -2,9 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { CreateOrganization } from "@clerk/nextjs";
 import Link from "next/link";
+import { headers } from "next/headers";
+import { demoEnabled } from "@/lib/demo";
 
 export default async function Onboarding() {
-  const { userId, orgId } = await auth();
+  const demo = demoEnabled(process.env, (await headers()).get("host"));
+  const { userId, orgId } = demo ? { userId: "demo", orgId: "demo" } : await auth();
   if (!userId) redirect("/sign-in");
   if (orgId) {
     // already has an active org → skip to the app
