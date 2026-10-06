@@ -40,3 +40,6 @@ eval/results.json
 # Raw eval outputs contain spec text and model prose (not redistributable): keep only the sanitised *.public.json
 eval/results-v2-*.json
 !eval/results-v2-*.public.json
+
+# Raw v1 result files contain spec text: only their sanitised *.public.json are committed
+eval/results-run[0-9].json

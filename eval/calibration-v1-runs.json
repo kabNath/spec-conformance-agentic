@@ -1,7 +1,7 @@
 {
   "schema": "vidimus-svc.calibration.v2",
   "version": "cal-ad31e4132318",
-  "generated_at": "2026-10-06T12:11:42+00:00",
+  "generated_at": "2026-10-06T12:45:50+00:00",
   "model": "anthropic/claude-sonnet-4.6",
   "target": "verdict_correct: pred_verdict == human_verdict (gold-set.json)",
   "raw_confidence": "mean(assessor_confidence, verifier_confidence), x0.5 if the verifier disagrees",
@@ -88,9 +88,9 @@
     }
   ],
   "inputs": {
-    "gold-set.json": "0e1563bfc5759112a19996597f84e08e099c2fdeed721617e9d0ca90a86be520",
-    "results-run1.json": "032d11a4a920c5a05ba56f50dd0a1266348f30132026180c9077c88c27ec1089",
-    "results-run2.json": "bbea363c980338da1d4feed8e97f737937198a12c29cb9c607de60a88f9ba1f0"
+    "gold-set.json": "dda9aa801d190d383558c45f19e6f63ed9770417a6bdbce7e4fd85b1b75c885e",
+    "results-run1.public.json": "e76a2708bdd32fd7fefef89acfc8d3d437349c75ebdf9e3dc851de87d68e1d7c",
+    "results-run2.public.json": "86de2074f7dad9fd16ef59c29af1c02aefc8f9bccc5b171a36755e84b74043de"
   },
   "caveats": [
     "Reference set is small (40 gold items, one model); tranche estimates are coarse.",

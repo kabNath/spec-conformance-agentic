@@ -43,7 +43,8 @@ export function agreement(a: Run, b: Run) {
   const A = new Map(a.items.map((i) => [i.id, i])), B = new Map(b.items.map((i) => [i.id, i]));
   const ids = [...A.keys()];
   const state = (i: Item) => ((i.error || i.system_error) ? "ERROR" : i.pred_verdict);
-  const both = ids.filter((id) => !A.get(id)!.error && !B.get(id)!.error);
+  const bad = (i: Item) => !!(i.error || i.system_error);
+  const both = ids.filter((id) => !bad(A.get(id)!) && !bad(B.get(id)!));
   const cl = both.filter((id) => A.get(id)!.pred_clause && B.get(id)!.pred_clause);
   return { all: ids.filter((id) => state(A.get(id)!) === state(B.get(id)!)).length, nAll: ids.length,
     scored: both.filter((id) => A.get(id)!.pred_verdict === B.get(id)!.pred_verdict).length, nScored: both.length,
@@ -56,7 +57,7 @@ const pc = (x: number | null) => (x === null ? "n/a" : (100 * x).toFixed(1) + " 
 
 function main() {
   const arg = (name: string, n = 2) => { const i = process.argv.indexOf(name); return i === -1 ? null : process.argv.slice(i + 1, i + 1 + n); };
-  const v1 = load(arg("--v1") ?? ["eval/results-run1.json", "eval/results-run2.json"]);
+  const v1 = load(arg("--v1") ?? ["eval/results-run1.public.json", "eval/results-run2.public.json"]);
   const v2 = load(arg("--v2") ?? ["eval/results-v2-gapguard-1.json", "eval/results-v2-gapguard-2.json"]);
   const M1 = v1.map(metrics), M2 = v2.map(metrics);
   const row = (label: string, f: (m: ReturnType<typeof metrics>) => string, avg?: (ms: ReturnType<typeof metrics>[]) => string) =>

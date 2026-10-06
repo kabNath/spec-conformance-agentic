@@ -1,7 +1,7 @@
 """Build eval/calibration.json from the gold set and the eval runs.
 
     python vidimus-svc/calibrate.py                                  # v2 runs (default)
-    python vidimus-svc/calibrate.py --runs results-run1.json results-run2.json --out calibration-v1-runs.json
+    python vidimus-svc/calibrate.py --runs results-run1.public.json results-run2.public.json --out calibration-v1-runs.json
 
 Reads eval/gold-set.json and the given runs (default: the sanitised v2 results, which are the committed ones)
 and prints the reliability table (accuracy per confidence tranche, Wilson 95%, ECE).

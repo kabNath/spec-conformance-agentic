@@ -1,7 +1,7 @@
 {
   "schema": "vidimus-svc.calibration.v2",
   "version": "cal-102be0bdb9d1",
-  "generated_at": "2026-10-06T12:11:42+00:00",
+  "generated_at": "2026-10-06T12:45:50+00:00",
   "model": "anthropic/claude-sonnet-4.6",
   "target": "verdict_correct: pred_verdict == human_verdict (gold-set.json)",
   "raw_confidence": "mean(assessor_confidence, verifier_confidence), x0.5 if the verifier disagrees",
@@ -88,7 +88,7 @@
     }
   ],
   "inputs": {
-    "gold-set.json": "0e1563bfc5759112a19996597f84e08e099c2fdeed721617e9d0ca90a86be520",
+    "gold-set.json": "dda9aa801d190d383558c45f19e6f63ed9770417a6bdbce7e4fd85b1b75c885e",
     "results-v2-gapguard-1.public.json": "f9507a5c9911f9edaf3414c78bb6c4b088bb1af98539da295d9cca24d08401c3",
     "results-v2-gapguard-2.public.json": "a0caaadb1924e0bb1730a114fe9680135fd69e36195fa31db387068ef78f7252"
   },

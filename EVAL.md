@@ -136,7 +136,7 @@ tsx --env-file=.env.local scripts/eval.ts --dry-run    # first 3 items, real cal
 tsx --env-file=.env.local scripts/eval.ts
 
 # 4) Rebuild the confidence calibration from the gold set + the two runs
-#    (copy results.json to eval/results-run1.json / results-run2.json first):
+#    (copy results.json to eval/results-run1.json / results-run2.json first; only their sanitised `*.public.json` versions are committed):
 python vidimus-svc/calibrate.py        # writes eval/calibration.json
 ```
 
@@ -147,7 +147,7 @@ Measured cost of the full 40-item run: **$0.52** at the Sonnet 4.6 list rate (se
 <!-- RESULTS:BEGIN -->
 **Run:** run 1 of 2 · **Model:** `anthropic/claude-sonnet-4.6` (temp 0) · **Cost:** $0.52
 (269 LLM calls, 112.6k input + 12.3k output tokens) · **Wall-clock:** ~11 min ·
-Raw data: [`eval/results-run1.json`](eval/results-run1.json).
+Data (sanitised, no spec text): [`eval/results-run1.public.json`](eval/results-run1.public.json).
 
 ### Headline
 
@@ -334,8 +334,8 @@ embeddings are billed separately and negligible.
 Temperature is 0, but LLM output is **not bit-stable**: the same requirement can retrieve a
 different clause or reach a different verdict across identical runs. To measure this, the
 full 40-item evaluation was executed **twice, with no code changes between runs** (run 1 →
-[`eval/results-run1.json`](eval/results-run1.json), run 2 →
-[`eval/results-run2.json`](eval/results-run2.json)).
+[`eval/results-run1.public.json`](eval/results-run1.public.json), run 2 →
+[`eval/results-run2.public.json`](eval/results-run2.public.json); sanitised versions of the raw files).
 
 <!-- STABILITY:BEGIN -->
 | framing | run 1 | run 2 |
@@ -396,8 +396,8 @@ prediction falls in, measured on this gold set.
 
 - **Script:** [`vidimus-svc/calibrate.py`](vidimus-svc/calibrate.py) (logic in
   [`vidimus-svc/calibration.py`](vidimus-svc/calibration.py)) reads
-  [`eval/gold-set.json`](eval/gold-set.json), [`eval/results-run1.json`](eval/results-run1.json)
-  and [`eval/results-run2.json`](eval/results-run2.json) and writes
+  [`eval/gold-set.json`](eval/gold-set.json), [`eval/results-run1.public.json`](eval/results-run1.public.json)
+  and [`eval/results-run2.public.json`](eval/results-run2.public.json) and writes
   [`eval/calibration.json`](eval/calibration.json) (date, model, n per tranche, input hashes).
   Re-run it after any model, prompt or retrieval change: `python vidimus-svc/calibrate.py`.
 - **Raw confidence** = mean(assessor, verifier), halved if the verifier disagrees.
@@ -464,7 +464,7 @@ Two complete passes over the 40 gold items with `GAP_GUARD=verifier`. Everything
 files [`eval/results-v2-gapguard-1.public.json`](eval/results-v2-gapguard-1.public.json) and
 [`-2`](eval/results-v2-gapguard-2.public.json) by [`scripts/eval-compare.ts`](scripts/eval-compare.ts) and
 [`scripts/eval-gap-report.ts`](scripts/eval-gap-report.ts). **The v1 sections above are unchanged**; v1 figures quoted here are
-recomputed from `eval/results-run1.json` / `-run2.json` with the same code (they reproduce the v1 numbers: 27/40, 24/38 committed, 3 silent errors).
+recomputed from `eval/results-run1.public.json` / `-run2.public.json` (sanitised v1 files) with the same code (they reproduce the v1 numbers: 27/40, 24/38 committed, 3 silent errors).
 
 **Setup.** Assessor `anthropic/claude-sonnet-4.6`, temperature 0 (unchanged); verifier `google/gemini-3.8-flash`, temperature 0, pinned with
 `{"only":["google-vertex"],"allow_fallbacks":false,"data_collection":"deny"}` (every resolved verifier call reports provider "Google");
@@ -605,9 +605,10 @@ to 5 and 6 (v2). The live check is `npm run eval:regression` (it sets `GAP_GUARD
 
 ### Spec text in committed files (audit finding)
 
-`scripts/check-no-spec-text.ts` found runs of ≥ 9 consecutive spec words in two files **committed before this change**: `eval/results-run1.json` and `-run2.json`
-(model notes `gap_note` / `verifier_note` quote clauses) and `eval/gold-set.json` (requirement and justification texts). They are untouched here. The new `.public.json` files and
-this document are clean. Rewriting history or replacing those files is a separate decision.
+`scripts/check-no-spec-text.ts` found runs of ≥ 9 consecutive spec words in files **committed before the v2 work**: `eval/results-run1.json` / `-run2.json` (model notes quote clauses), `eval/gold-set.json`
+(requirement and justification texts), `examples/ts38331-extrait.txt` and two test fixtures. **Step 1 of the cleanup plan (`docs/spec-text-cleanup-plan.md`) has since been applied to the working tree**: the v1 result files are replaced by
+sanitised `*.public.json` versions (the v1 numbers above reproduce identically from them), the example extract and the test fixtures are invented text, and the justification of R07 is paraphrased. The four `requirement`
+texts of the gold set (R02, R08, R33, R40; ≤ 12 consecutive words each) are kept on purpose: they are the inputs of the benchmark. The old text remains in git history, which has **not** been rewritten.
 
 
 ### Confidence calibration — recomputed on the v2 runs
