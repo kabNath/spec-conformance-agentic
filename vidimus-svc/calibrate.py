@@ -26,17 +26,23 @@ def main() -> int:
     out = EVAL / "calibration.json"
     out.write_text(json.dumps(c, indent=2, ensure_ascii=False) + "\n")
 
-    print(f"{c['version']}  model={c['model']}  n_reference={c['n_reference']} "
-          f"({c['n_items']} items x {c['n_runs']} runs, {c['n_errored_excluded']} errored excluded)")
-    print(f"ECE = {c['ece']:.3f}\n")
-    print(f"{'tranche':>11} {'n':>4} {'mean conf':>10} {'accuracy':>9}  Wilson 95%       calibrated")
+    cv = c["cross_validation"]
+    print(f"{c['version']}  model={c['model']}  n_reference={c['n_reference']} items "
+          f"({c['n_predictions']} predictions over {c['n_runs']} runs, "
+          f"{c['n_errored_excluded']} errored excluded)")
+    print(f"ECE raw confidence      = {c['ece_raw']:.3f}")
+    ece_cv = cv["ece_calibrated"]
+    print(f"ECE calibrated ({cv['k']}-fold CV by item) = {'n/a' if ece_cv is None else f'{ece_cv:.3f}'}"
+          f"  coverage {cv['coverage']:.1%}  ({cv['n_routed_to_review']}/{cv['n_predictions']} "
+          f"predictions routed to human review)\n")
+    print(f"{'tranche':>11} {'items':>5} {'mean conf':>10} {'accuracy':>9}  Wilson 95%       calibrated")
     for t in c["tranches"]:
         if t["n"]:
-            print(f"[{t['lo']:.1f},{t['hi']:.1f}{']' if t['hi'] == 1.0 else ')'} {t['n']:>4} "
+            print(f"[{t['lo']:.1f},{t['hi']:.1f}{']' if t['hi'] == 1.0 else ')'} {t['n']:>5} "
                   f"{t['mean_confidence']:>10.3f} {t['accuracy']:>9.3f}  "
                   f"[{t['ci_low']:.3f}, {t['ci_high']:.3f}]  {'yes' if t['calibrated'] else 'NO (n<%d)' % cal.MIN_N}")
         else:
-            print(f"[{t['lo']:.1f},{t['hi']:.1f}) {0:>4}  (empty)")
+            print(f"[{t['lo']:.1f},{t['hi']:.1f}) {0:>5}  (empty)")
     print(f"\nwritten: {out}")
     return 0
 

@@ -30,7 +30,7 @@ cites the exact governing clause.
 | **LangGraph** | Bounded pipeline as a state machine | implemented |
 | **LangChain** | LLM / embeddings / store plumbing | implemented |
 | **Cloudinary** | Raw uploaded-document storage | implemented |
-| **Vidimus** | Empirically calibrated confidence (tranche accuracy + Wilson 95 % interval, n = 75 predictions from the 40-item gold set, one model — see [EVAL.md](EVAL.md#confidence-calibration)) + Ed25519-signed attestation (sidecar). Raw LLM confidence is **not** calibrated (R10: a wrong verdict at 0.95). | implemented using [kabNath/vidimus](https://github.com/kabNath/vidimus) |
+| **Vidimus** | Empirically calibrated confidence (tranche accuracy + Wilson 95 % interval, 38 items from the 40-item gold set, one model, only the top tranche has enough items; the rest go to human review — see [EVAL.md](EVAL.md#confidence-calibration)) + Ed25519-signed attestation (sidecar). Raw LLM confidence is **not** calibrated (R10: a wrong verdict at 0.95). | implemented using [kabNath/vidimus](https://github.com/kabNath/vidimus) |
 | **Docker** | Local parity (docker-compose) + on-prem deliverable | Dockerfiles |
 | **CI/CD** | GitHub Actions: ci.yml (node + vidimus-svc checks); deploy.yml (manual, workflow_dispatch) | real, OIDC |
 | **AWS** | App Runner (app + vidimus) + RDS Postgres, via Terraform | IaC in infra/terraform |

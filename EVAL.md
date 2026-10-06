@@ -401,22 +401,39 @@ prediction falls in, measured on this gold set.
 - **Raw confidence** = mean(assessor, verifier), halved if the verifier disagrees.
   **Target** = verdict equals the human reference.
 - **Tranches:** five fixed equal-width bands of raw confidence (not tuned on the data).
-- **Reference size:** **75 scored predictions** = 40 gold items × 2 runs, minus 5 system-error
-  predictions that carry no verdict or confidence (R21 and R31 in both runs, R26 in run 2).
-- **Interval:** Wilson 95 % per tranche. **Minimum n = 10**: below it the sidecar answers
-  `calibrated: false` with `calibrated_confidence`, `ci_low`, `ci_high` all `null` — no invented interval.
+- **Reference size:** **38 distinct items** with a scored prediction (40 gold items; R21 and R31 failed
+  as system errors in both runs), i.e. **75 predictions** over two runs (R26 also errored in run 2).
+  The two runs score the *same* items, so predictions are **not independent**. Counting every
+  prediction would double the apparent sample size; the table therefore uses **one unit per
+  (item, tranche)**: an item right in one run and wrong in the other counts 0.5. `n`, the `n ≥ 10` rule
+  and the Wilson intervals are all in items.
+- **Interval:** Wilson 95 % per tranche on those item units. **Minimum n = 10 items**: below it the
+  sidecar answers `calibrated: false` with `calibrated_confidence`, `ci_low`, `ci_high` all `null`.
+- **Cross-validation:** 5-fold, **grouped by item** (both runs of an item always fall in the same fold;
+  fold = SHA-256(id) mod 5). For each fold the table is fitted on the other four and applied to the
+  held-out predictions, so the quality figure is never measured on the data that fitted it.
 
-| raw confidence | n | mean raw | observed accuracy | Wilson 95 % | calibrated |
-|---|--:|--:|--:|---|---|
-| [0.0, 0.2) | 0 | — | — | — | no |
-| [0.2, 0.4) | 18 | 0.350 | 22.2 % | 9.0 – 45.2 % | yes |
-| [0.4, 0.6) | 6 | 0.480 | 100 % | 61.0 – 100 % | no (n < 10) |
-| [0.6, 0.8) | 5 | 0.721 | 40.0 % | 11.8 – 76.9 % | no (n < 10) |
-| [0.8, 1.0] | 46 | 0.954 | 87.0 % | 74.3 – 93.9 % | yes |
+| raw confidence | items (n) | predictions | mean raw | observed accuracy | Wilson 95 % | calibrated |
+|---|--:|--:|--:|--:|---|---|
+| [0.0, 0.2) | 0 | 0 | — | — | — | no |
+| [0.2, 0.4) | 9 | 18 | 0.350 | 22.2 % | 6.3 – 54.7 % | no (n < 10) |
+| [0.4, 0.6) | 3 | 6 | 0.480 | 100 % | 43.9 – 100 % | no (n < 10) |
+| [0.6, 0.8) | 3 | 5 | 0.721 | 33.3 % | 6.1 – 79.2 % | no (n < 10) |
+| [0.8, 1.0] | 24 | 46 | 0.954 | 87.5 % | 69.0 – 95.7 % | **yes** |
 
-**ECE = 0.145** over the 75 predictions. The top tranche is the one that matters: the model says
-~0.95 on average and is right 87 % of the time (plausibly 74–94 %). The reliability curve sits
-below the diagonal there, i.e. the raw confidence is over-confident.
+**Result (v1.2, replaces the v1.1 figures, which counted the same items twice):**
+
+- **Raw confidence ECE = 0.145** (no fitting involved, so no leakage): the model says ~0.95 on average
+  in the top tranche and is right 87.5 % of the time (plausibly 69–96 % at the item level). The old
+  v1.1 interval for that tranche, [74.3, 93.9] %, was too narrow.
+- **Cross-validated ECE of the calibrated confidence = 0.023, at 61.3 % coverage.** Read both together:
+  only the top tranche has enough items, so this number says that the top-tranche accuracy is stable
+  across folds. It says nothing about the other tranches.
+- **Only one tranche of five is calibrated.** The other 29 of 75 predictions (38.7 %) fall in tranches
+  with fewer than 10 items. For them the sidecar returns `calibrated: false` with no number and no
+  interval, and the pipeline **routes the item to human review** (`low_confidence`), keeping the raw
+  value for display only. This is deliberate: with n < 10 an interval would be fiction. The cost is
+  that low-confidence items always need a human; it grows the review queue, it does not hide errors.
 
 The sidecar loads `calibration.json` and returns, per request: `calibrated`, `calibrated_confidence`
 (= accuracy of the tranche), `ci_low` / `ci_high` (= its Wilson interval), `raw_confidence`, and the
@@ -427,12 +444,12 @@ to human review (`low_confidence`).
 
 **Limits — read before relying on these numbers:**
 
-- **n = 40 items, one model** (`anthropic/claude-sonnet-4.6`). The table is valid for that model on
+- **38 items, one model** (`anthropic/claude-sonnet-4.6`). The table is valid for that model on
   this corpus; any other model or prompt needs its own calibration run.
-- **The two runs are not independent** (same 40 items), so the Wilson intervals are **optimistic**
-  — they treat 75 predictions as 75 independent samples.
-- Three of the five tranches are unusable (n < 10; one of them is empty); the 100 % in
-  [0.4, 0.6) is 6 of 6, not evidence of high accuracy there.
+- Item units remove the double counting but not all dependence (an item can sit in two tranches), and
+  Wilson on fractional counts is an approximation: treat the interval as indicative.
+- Four of the five tranches are unusable (n < 10; one is empty); the 100 % in [0.4, 0.6) is 3 items,
+  not evidence of high accuracy there.
 - Calibration corrects the *scale* of confidence. It cannot detect errors shared by both LLM
   judges (R10), and it says nothing about items unlike the gold set.
 - **Review gating changed meaning:** the 0.75 threshold now applies to the empirical tranche accuracy
@@ -441,6 +458,9 @@ to human review (`low_confidence`).
 
 ## Changelog
 
+- **v1.2 (2026-10-06)** — calibration re-done at item level with item-grouped 5-fold cross-validation;
+  tranches need ≥ 10 distinct items (only the top one qualifies), others go to human review.
+  Supersedes the v1.1 table.
 - **v1.1 (2026-10-06)** — confidence calibration added (see *Confidence calibration*): empirical
   tranche accuracy with Wilson 95 % intervals replaces the 2-sample bootstrap in the sidecar. The v1
   results are unchanged and were measured with the previous confidence.
@@ -455,7 +475,7 @@ to human review (`low_confidence`).
 
 ## Threats to validity
 
-- **Calibration is thin** (75 non-independent predictions, one model): see *Confidence calibration*.
+- **Calibration is thin** (38 items, one model, one calibrated tranche): see *Confidence calibration*.
 - **Small n (40).** Per-class figures (especially `insufficient`, n=7) have wide
   confidence intervals; treat them as directional, not definitive.
 - **Author-adjacent gold set.** Requirements were drafted and human-validated by the

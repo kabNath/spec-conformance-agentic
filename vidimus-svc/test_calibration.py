@@ -38,43 +38,89 @@ def test_raw_confidence():
 
 
 def _synthetic():
-    # 12 items; the pipeline is 100% sure (0.99) but only 6/10 right, and
-    # 2 items sit alone in a low tranche.
-    gold = {"requirements": [{"id": f"R{i}", "human_verdict": "gap", "human_validated": True} for i in range(12)]}
-    items = []
-    for i in range(10):
-        items.append({"id": f"R{i}", "pred_verdict": "gap" if i < 6 else "conformant",
-                      "assessor_confidence": 0.99, "verifier_confidence": 0.99, "verifier_agrees": True})
-    items.append({"id": "R10", "pred_verdict": "gap", "assessor_confidence": 0.2,
-                  "verifier_confidence": 0.5, "verifier_agrees": True})
-    items.append({"id": "R11", "pred_verdict": "insufficient", "error": "boom",
-                  "assessor_confidence": 0, "verifier_confidence": 0, "verifier_agrees": False})
-    run = {"config": {"model": "m-1"}, "items": items}
-    return gold, [run]
+    """20 gold items; run 2 omits two items and has one system error.
+
+    Top tranche (raw 0.99): items 0-11 right in both runs, 12-15 wrong in both,
+    16-17 right in run 1 only -> 18 item-units, 13 correct-equivalents.
+    Items 18-19: one prediction each in a low tranche (n = 2 items).
+    """
+    gold = {"requirements": [{"id": f"R{i:02d}", "human_verdict": "gap", "human_validated": True}
+                             for i in range(20)]}
+
+    def item(i, pred_ok, a=0.99, v=0.99):
+        return {"id": f"R{i:02d}", "pred_verdict": "gap" if pred_ok else "conformant",
+                "assessor_confidence": a, "verifier_confidence": v, "verifier_agrees": True}
+
+    run1 = [item(i, i < 12 or i in (16, 17)) for i in range(18)]
+    run1 += [item(18, True, 0.2, 0.5), item(19, False, 0.2, 0.5)]
+    run2 = [item(i, i < 12) for i in range(18)]
+    run2.append({"id": "R19", "pred_verdict": "insufficient", "error": "boom",
+                 "assessor_confidence": 0, "verifier_confidence": 0, "verifier_agrees": False})
+    return gold, [{"config": {"model": "m-1"}, "items": run1}, {"config": {"model": "m-1"}, "items": run2}]
 
 
-def test_build_calibration_synthetic():
+def test_build_calibration_counts_items_not_predictions():
     gold, runs = _synthetic()
     c = cal.build_calibration(gold, runs)
     assert c["model"] == "m-1"
-    assert c["n_reference"] == 11 and c["n_items"] == 12 and c["n_errored_excluded"] == 1
+    assert c["n_predictions"] == 38 and c["n_errored_excluded"] == 1
+    assert c["n_reference"] == 20 and c["n_items"] == 20  # distinct scored items
     top = c["tranches"][-1]
-    assert top["n"] == 10 and top["n_correct"] == 6 and approx(top["accuracy"], 0.6)
-    assert top["calibrated"] is True
-    lo, hi = cal.wilson_interval(6, 10)
+    assert top["n"] == 18 and top["n_predictions"] == 36  # 18 items, not 36 samples
+    assert approx(top["accuracy"], 13 / 18) and top["calibrated"] is True
+    lo, hi = cal.wilson_interval(13, 18)  # item-level counts
     assert approx(top["ci_low"], lo) and approx(top["ci_high"], hi)
-    low = [t for t in c["tranches"] if t["n"] == 1][0]
-    assert low["calibrated"] is False  # n < 10
-    assert sum(t["n"] for t in c["tranches"]) == 11
-    # ECE = sum n_b/N * |acc_b - mean_conf_b|
-    expected = (10 * abs(0.6 - 0.99) + 1 * abs(1.0 - 0.35)) / 11
-    assert approx(c["ece"], expected, 1e-3), (c["ece"], expected)
+    low = c["tranches"][1]
+    assert low["n"] == 2 and low["calibrated"] is False  # n < 10 items
 
 
 def test_errored_items_never_counted():
     gold, runs = _synthetic()
     c = cal.build_calibration(gold, runs)
-    assert all(t["n"] == 0 or t["mean_confidence"] > 0 for t in c["tranches"])
+    assert sum(t["n_predictions"] for t in c["tranches"]) == 38
+
+
+def test_fold_assignment_keeps_both_runs_of_an_item_together():
+    gold, runs = _synthetic()
+    rows = cal.collect_rows(gold, runs)[0]
+    cv = cal.cross_validate(rows, k=5)
+    for fold in cv["folds"]:
+        assert not set(fold["train_items"]) & set(fold["test_items"])
+    seen = {}
+    for f in cv["folds"]:
+        for i in f["test_items"]:
+            assert i not in seen  # each item is held out in exactly one fold
+            seen[i] = f["fold"]
+    assert set(seen) == {r["item"] for r in rows}
+    assert all(seen[r["item"]] == cal.fold_of(r["item"], 5) for r in rows)
+
+
+def test_cross_validated_prediction_uses_only_training_items():
+    gold, runs = _synthetic()
+    rows, *_ = cal.collect_rows(gold, runs)
+    cv = cal.cross_validate(rows, k=5)
+    by_fold = {f["fold"]: f for f in cv["folds"]}
+    for o in cv["oof"]:
+        train = set(by_fold[o["fold"]]["train_items"])
+        tr = cal.tranche_table([r for r in rows if r["item"] in train])[cal._tranche_index(o["raw"])]
+        expected = tr["accuracy"] if tr["calibrated"] else None
+        assert (o["pred"] is None) == (expected is None)
+        if expected is not None:
+            assert approx(o["pred"], expected, 1e-9)
+
+
+def test_cv_reports_coverage_and_routes_the_rest_to_review():
+    gold, runs = _synthetic()
+    c = cal.build_calibration(gold, runs)
+    cv = c["cross_validation"]
+    assert cv["k"] == 5 and cv["grouping"] == "item"
+    assert cv["n_predictions"] == 38
+    assert cv["n_covered"] + cv["n_routed_to_review"] == 38
+    assert 0 <= cv["coverage"] <= 1 and approx(cv["coverage"], cv["n_covered"] / 38)
+    # the two low-tranche items can never be calibrated -> always routed to review
+    assert cv["n_routed_to_review"] >= 2
+    assert 0 <= c["ece_raw"] <= 1
+    assert cv["ece_calibrated"] is None or 0 <= cv["ece_calibrated"] <= 1
 
 
 def test_lookup_boundaries():
@@ -112,10 +158,10 @@ def test_attest_uses_empirical_tranche_and_signs_calibration_fields():
     client, main = _client(p)
     d = client.post("/attest", json=BODY).json()
     assert d["calibrated"] is True
-    assert approx(d["calibrated_confidence"], 0.6)  # NOT 0.99: empirical accuracy of the tranche
-    lo, hi = cal.wilson_interval(6, 10)
+    assert approx(d["calibrated_confidence"], 13 / 18)  # NOT 0.99: empirical accuracy of the tranche
+    lo, hi = cal.wilson_interval(13, 18)
     assert approx(d["ci_low"], lo) and approx(d["ci_high"], hi)
-    assert d["calibration_version"] == c["version"] and d["n_reference"] == c["n_reference"]
+    assert d["calibration_version"] == c["version"] and d["n_reference"] == c["n_reference"] == 20
     assert approx(d["raw_confidence"], 0.99)
     _verify_signature(d, main)
     # The signed payload commits to the calibration fields: recompute the hash.
@@ -132,7 +178,7 @@ def test_small_tranche_is_not_calibrated_and_has_no_interval():
     p = Path(tempfile.mkdtemp()) / "calibration.json"
     p.write_text(json.dumps(cal.build_calibration(gold, runs)))
     client, main = _client(p)
-    body = dict(BODY, assessor_confidence=0.2, verifier_confidence=0.5)  # raw 0.35: tranche n=1
+    body = dict(BODY, assessor_confidence=0.2, verifier_confidence=0.5)  # raw 0.35: tranche n=2 items
     d = client.post("/attest", json=body).json()
     assert d["calibrated"] is False
     assert d["calibrated_confidence"] is None and d["ci_low"] is None and d["ci_high"] is None
@@ -156,6 +202,7 @@ def test_committed_calibration_matches_eval_inputs():
     rebuilt = cal.build_calibration(gold, runs)
     assert committed["version"] == rebuilt["version"]
     assert committed["tranches"] == rebuilt["tranches"]
+    assert committed["cross_validation"] == rebuilt["cross_validation"]
     assert committed["n_reference"] == rebuilt["n_reference"] and committed["model"] == rebuilt["model"]
     assert committed["generated_at"]
 
