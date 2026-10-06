@@ -25,7 +25,7 @@ L'étage de test Docker, lui, utilise cette version publique épinglée (c'est v
 | Suite | Commande (depuis `spec-conformance-agentic/`) | Résultat attendu |
 |---|---|---|
 | Types TypeScript | `npx tsc --noEmit --incremental false` | aucune sortie, code 0 |
-| Tests unitaires TypeScript (citations, fenêtre, garde de gap, ablation, texte de spec, mode démo…) | `npm run test:unit` | aucune ligne `❌` (113 `✅` avec les données locales) |
+| Tests unitaires TypeScript (citations, fenêtre, garde de gap, ablation, texte de spec, mode démo…) | `npm run test:unit` | aucune ligne `❌` (121 `✅` avec les données locales) |
 | Sidecar : attestation | `../vidimus-main/.venv/bin/python vidimus-svc/test_attest.py` | `OK  /attest -> 200 …` |
 | Sidecar : calibration | `../vidimus-main/.venv/bin/python vidimus-svc/test_calibration.py` | 13 lignes `ok` |
 | Sidecar : clés, /pubkey, rotation | `../vidimus-main/.venv/bin/python vidimus-svc/test_keys.py` | 10 lignes `ok` |
