@@ -1,0 +1,83 @@
+{
+  "schema": "vidimus-svc.calibration.v1",
+  "version": "cal-b4aa95455ca6",
+  "generated_at": "2026-10-06T09:07:17+00:00",
+  "model": "anthropic/claude-sonnet-4.6",
+  "target": "verdict_correct: pred_verdict == human_verdict (gold-set.json)",
+  "raw_confidence": "mean(assessor_confidence, verifier_confidence), x0.5 if the verifier disagrees",
+  "min_n_per_tranche": 10,
+  "interval": "Wilson score, 95%",
+  "n_reference": 75,
+  "n_items": 40,
+  "n_runs": 2,
+  "n_errored_excluded": 5,
+  "ece": 0.1452,
+  "tranches": [
+    {
+      "lo": 0.0,
+      "hi": 0.2,
+      "n": 0,
+      "n_correct": 0,
+      "mean_confidence": null,
+      "accuracy": null,
+      "ci_low": null,
+      "ci_high": null,
+      "calibrated": false
+    },
+    {
+      "lo": 0.2,
+      "hi": 0.4,
+      "n": 18,
+      "n_correct": 4,
+      "mean_confidence": 0.35,
+      "accuracy": 0.2222,
+      "ci_low": 0.09,
+      "ci_high": 0.4521,
+      "calibrated": true
+    },
+    {
+      "lo": 0.4,
+      "hi": 0.6,
+      "n": 6,
+      "n_correct": 6,
+      "mean_confidence": 0.48,
+      "accuracy": 1.0,
+      "ci_low": 0.6097,
+      "ci_high": 1.0,
+      "calibrated": false
+    },
+    {
+      "lo": 0.6,
+      "hi": 0.8,
+      "n": 5,
+      "n_correct": 2,
+      "mean_confidence": 0.721,
+      "accuracy": 0.4,
+      "ci_low": 0.1176,
+      "ci_high": 0.7693,
+      "calibrated": false
+    },
+    {
+      "lo": 0.8,
+      "hi": 1.0,
+      "n": 46,
+      "n_correct": 40,
+      "mean_confidence": 0.9536,
+      "accuracy": 0.8696,
+      "ci_low": 0.7433,
+      "ci_high": 0.9388,
+      "calibrated": true
+    }
+  ],
+  "inputs": {
+    "gold-set.json": "0e1563bfc5759112a19996597f84e08e099c2fdeed721617e9d0ca90a86be520",
+    "results-run1.json": "032d11a4a920c5a05ba56f50dd0a1266348f30132026180c9077c88c27ec1089",
+    "results-run2.json": "bbea363c980338da1d4feed8e97f737937198a12c29cb9c607de60a88f9ba1f0"
+  },
+  "caveats": [
+    "Reference set is small (40 gold items, one model); tranche estimates are coarse.",
+    "Both runs score the same 40 items, so predictions are not independent: the Wilson intervals treat them as independent and are therefore optimistic (too narrow).",
+    "Valid only for the model named here on this corpus (TS 38.331 v19.3.0 extract); re-run calibrate.py after any model, prompt or retrieval change.",
+    "Intervals capture sampling noise only, not systematic error shared by the LLM judges."
+  ]
+}

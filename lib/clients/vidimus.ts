@@ -20,7 +20,9 @@ export async function attest(input: {
   if (!res.ok) throw new Error(`vidimus /attest ${res.status}`);
   const d = await res.json();
   return {
-    calibratedConfidence: d.calibrated_confidence, ciLow: d.ci_low, ciHigh: d.ci_high,
+    calibrated: d.calibrated, calibratedConfidence: d.calibrated_confidence,
+    ciLow: d.ci_low, ciHigh: d.ci_high, rawConfidence: d.raw_confidence,
+    calibrationVersion: d.calibration_version, nReference: d.n_reference, trancheN: d.tranche_n,
     contentHash: d.content_hash, signature: d.signature, publicKey: d.public_key,
   };
 }

@@ -57,9 +57,15 @@ export interface VerifierResult {
 
 /* ── Vidimus attestation — calibrated confidence + tamper-evident signature ── */
 export interface Attestation {
-  calibratedConfidence: number; // bootstrap-CI mean over judge signals
-  ciLow: number;
-  ciHigh: number;
+  /** Empirical accuracy of the raw-confidence tranche (eval/calibration.json). */
+  calibrated: boolean;          // false => tranche has < 10 reference items: no calibrated value, no interval
+  calibratedConfidence: number | null;
+  ciLow: number | null;         // Wilson 95% interval of the tranche
+  ciHigh: number | null;
+  rawConfidence: number;        // uncalibrated LLM signal (mean of assessor + verifier)
+  calibrationVersion: string;   // "none" when no calibration file was loaded
+  nReference: number;           // reference predictions behind the calibration
+  trancheN: number;             // reference predictions in this tranche
   contentHash: string;          // SHA-256 of canonical payload
   signature: string;            // Ed25519 signature of the content hash
   publicKey: string;            // verifier's public key (hex)

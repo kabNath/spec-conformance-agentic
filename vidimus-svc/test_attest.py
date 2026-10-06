@@ -37,7 +37,8 @@ resp = client.post(
 
 assert resp.status_code == 200, f"expected 200, got {resp.status_code}: {resp.text}"
 d = resp.json()
-for field in ("calibrated_confidence", "ci_low", "ci_high", "content_hash", "signature", "public_key"):
+for field in ("calibrated", "calibrated_confidence", "ci_low", "ci_high", "raw_confidence",
+              "calibration_version", "n_reference", "content_hash", "signature", "public_key"):
     assert field in d, f"missing response field: {field}"
 
 # Signature must verify under the returned public key (real vidimus primitives).

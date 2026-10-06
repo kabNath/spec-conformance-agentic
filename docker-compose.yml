@@ -21,7 +21,9 @@ services:
     volumes: ["neo4jdata:/data"]
 
   vidimus:
-    build: ./vidimus-svc
+    build:
+      context: .
+      dockerfile: vidimus-svc/Dockerfile
     ports: ["4319:4319"]
     volumes: ["vidimusdata:/data"]
 

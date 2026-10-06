@@ -19,18 +19,20 @@ async function compileNode(s: ConformanceStateT): Promise<Partial<ConformanceSta
   const a = await assess(req.requirement, s.citations);
   const v = await verify(req.requirement, a.verdict, s.citations);
 
-  // Vidimus: calibrated confidence (bootstrap-CI over both judges) + signed attestation.
+  // Vidimus: empirical (tranche-accuracy) confidence + signed attestation. When the
+  // tranche is too small to calibrate, fall back to the raw LLM signal and route to review.
   const att = await attest({
     requirement: req.requirement, verdict: a.verdict,
     assessorConfidence: a.confidence, verifierConfidence: v.confidence,
     verifierAgrees: v.agrees, citations: s.citations,
   });
-  const confidence = att.calibratedConfidence;
+  const confidence = att.calibrated && att.calibratedConfidence !== null
+    ? att.calibratedConfidence : att.rawConfidence;
 
   let review: { required: boolean; reason?: ReviewReason };
   if (s.citations.length === 0) review = { required: true, reason: "no_clause_found" };
   else if (!v.agrees) review = { required: true, reason: "verifier_disagreement" };
-  else if (confidence < s.reviewThreshold) review = { required: true, reason: "low_confidence" };
+  else if (!att.calibrated || confidence < s.reviewThreshold) review = { required: true, reason: "low_confidence" };
   else review = { required: false };
 
   const row: EvaluatedRequirement = {

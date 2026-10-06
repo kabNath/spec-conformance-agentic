@@ -26,3 +26,5 @@ jobs:
         run: pip install -r vidimus-svc/requirements.txt httpx
       - name: Test /attest — HTTP 200 + valid Ed25519 signature
         run: python vidimus-svc/test_attest.py
+      - name: Test calibration (Wilson, tranches, signed fields, reproducibility)
+        run: python vidimus-svc/test_calibration.py

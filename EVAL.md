@@ -134,6 +134,10 @@ tsx --env-file=.env.local scripts/eval.ts --dry-run    # first 3 items, real cal
 
 # 3) Full evaluation → writes eval/results.json:
 tsx --env-file=.env.local scripts/eval.ts
+
+# 4) Rebuild the confidence calibration from the gold set + the two runs
+#    (copy results.json to eval/results-run1.json / results-run2.json first):
+python vidimus-svc/calibrate.py        # writes eval/calibration.json
 ```
 
 Measured cost of the full 40-item run: **$0.52** at the Sonnet 4.6 list rate (see Results).
@@ -379,8 +383,67 @@ variance did not produce a single committed wrong verdict that the other run got
 The forthcoming `extractJSON` fix removes the R26/R21/R31 error class outright.
 <!-- STABILITY:END -->
 
+## Confidence calibration
+
+**Raw LLM confidence is not calibrated.** The assessor and verifier report numbers like 0.95
+that are not probabilities of being right — R10 above was a wrong `gap` asserted at 0.95 and
+endorsed by the verifier at 0.92. The sidecar therefore no longer reports a "confidence" derived
+from the model's own numbers (the previous version bootstrapped over just two values, which has
+no statistical meaning). It reports the **observed accuracy** of the confidence band the
+prediction falls in, measured on this gold set.
+
+- **Script:** [`vidimus-svc/calibrate.py`](vidimus-svc/calibrate.py) (logic in
+  [`vidimus-svc/calibration.py`](vidimus-svc/calibration.py)) reads
+  [`eval/gold-set.json`](eval/gold-set.json), [`eval/results-run1.json`](eval/results-run1.json)
+  and [`eval/results-run2.json`](eval/results-run2.json) and writes
+  [`eval/calibration.json`](eval/calibration.json) (date, model, n per tranche, input hashes).
+  Re-run it after any model, prompt or retrieval change: `python vidimus-svc/calibrate.py`.
+- **Raw confidence** = mean(assessor, verifier), halved if the verifier disagrees.
+  **Target** = verdict equals the human reference.
+- **Tranches:** five fixed equal-width bands of raw confidence (not tuned on the data).
+- **Reference size:** **75 scored predictions** = 40 gold items × 2 runs, minus 5 system-error
+  predictions that carry no verdict or confidence (R21 and R31 in both runs, R26 in run 2).
+- **Interval:** Wilson 95 % per tranche. **Minimum n = 10**: below it the sidecar answers
+  `calibrated: false` with `calibrated_confidence`, `ci_low`, `ci_high` all `null` — no invented interval.
+
+| raw confidence | n | mean raw | observed accuracy | Wilson 95 % | calibrated |
+|---|--:|--:|--:|---|---|
+| [0.0, 0.2) | 0 | — | — | — | no |
+| [0.2, 0.4) | 18 | 0.350 | 22.2 % | 9.0 – 45.2 % | yes |
+| [0.4, 0.6) | 6 | 0.480 | 100 % | 61.0 – 100 % | no (n < 10) |
+| [0.6, 0.8) | 5 | 0.721 | 40.0 % | 11.8 – 76.9 % | no (n < 10) |
+| [0.8, 1.0] | 46 | 0.954 | 87.0 % | 74.3 – 93.9 % | yes |
+
+**ECE = 0.145** over the 75 predictions. The top tranche is the one that matters: the model says
+~0.95 on average and is right 87 % of the time (plausibly 74–94 %). The reliability curve sits
+below the diagonal there, i.e. the raw confidence is over-confident.
+
+The sidecar loads `calibration.json` and returns, per request: `calibrated`, `calibrated_confidence`
+(= accuracy of the tranche), `ci_low` / `ci_high` (= its Wilson interval), `raw_confidence`, and the
+provenance `calibration_version` and `n_reference`. These, plus `tranche_n`, are part of the
+**signed payload**, so a signature commits to the calibration it was computed with. If the
+tranche is not calibrated, the pipeline keeps the raw number for display only and sends the item
+to human review (`low_confidence`).
+
+**Limits — read before relying on these numbers:**
+
+- **n = 40 items, one model** (`anthropic/claude-sonnet-4.6`). The table is valid for that model on
+  this corpus; any other model or prompt needs its own calibration run.
+- **The two runs are not independent** (same 40 items), so the Wilson intervals are **optimistic**
+  — they treat 75 predictions as 75 independent samples.
+- Three of the five tranches are unusable (n < 10; one of them is empty); the 100 % in
+  [0.4, 0.6) is 6 of 6, not evidence of high accuracy there.
+- Calibration corrects the *scale* of confidence. It cannot detect errors shared by both LLM
+  judges (R10), and it says nothing about items unlike the gold set.
+- **Review gating changed meaning:** the 0.75 threshold now applies to the empirical tranche accuracy
+  (0.87 in the top tranche), not to the raw number. The v1 results above were produced with the
+  old confidence and are reported as run; re-running the evaluation will give different gating figures.
+
 ## Changelog
 
+- **v1.1 (2026-10-06)** — confidence calibration added (see *Confidence calibration*): empirical
+  tranche accuracy with Wilson 95 % intervals replaces the 2-sample bootstrap in the sidecar. The v1
+  results are unchanged and were measured with the previous confidence.
 - **v1 (2026-07-08)** — first evaluation. Gold set of 40 human-validated requirements over a
   266-clause TS 38.331 v19.3.0 extract; harness [`scripts/eval.ts`](scripts/eval.ts); model
   `anthropic/claude-sonnet-4.6`. Two identical runs for stability. Known issue: two
@@ -392,6 +455,7 @@ The forthcoming `extractJSON` fix removes the R26/R21/R31 error class outright.
 
 ## Threats to validity
 
+- **Calibration is thin** (75 non-independent predictions, one model): see *Confidence calibration*.
 - **Small n (40).** Per-class figures (especially `insufficient`, n=7) have wide
   confidence intervals; treat them as directional, not definitive.
 - **Author-adjacent gold set.** Requirements were drafted and human-validated by the
