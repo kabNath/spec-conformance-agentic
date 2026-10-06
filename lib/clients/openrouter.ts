@@ -42,26 +42,30 @@ export const llmStats = {
   reset() { this.calls = 0; this.inputTokens = 0; this.outputTokens = 0; },
 };
 
-async function callJSON<T>(system: string, user: string, model?: string): Promise<T> {
+/** One entry per LLM call: lets the eval harness look up real provider + cost on OpenRouter afterwards. */
+export const callLog: { id: string | undefined; model: string; role: string }[] = [];
+
+async function callJSON<T>(system: string, user: string, model?: string, role = "assessor"): Promise<T> {
   const res = await llm(model).invoke([
     { role: "system", content: system },
     { role: "user", content: user },
   ]);
   llmStats.calls++;
+  callLog.push({ id: (res as unknown as { id?: string }).id, model: model ?? assessorModel(), role });
   const u = (res as unknown as { usage_metadata?: { input_tokens?: number; output_tokens?: number } }).usage_metadata;
   if (u) { llmStats.inputTokens += u.input_tokens ?? 0; llmStats.outputTokens += u.output_tokens ?? 0; }
   return JSON.parse(extractJSON(String(res.content))) as T;
 }
 
 /** Ask for strict JSON and parse it, tolerating fences/prose; retry once. */
-export async function llmJSON<T>(system: string, user: string, opts: { model?: string } = {}): Promise<T> {
+export async function llmJSON<T>(system: string, user: string, opts: { model?: string; role?: string } = {}): Promise<T> {
   try {
-    return await callJSON<T>(system, user, opts.model);
+    return await callJSON<T>(system, user, opts.model, opts.role);
   } catch {
     // Models occasionally append a trailing sentence — retry once, insisting on raw JSON.
     return await callJSON<T>(
       `${system}\nReturn ONLY the raw JSON value — no prose, no markdown, no code fences.`,
-      user, opts.model
+      user, opts.model, opts.role
     );
   }
 }
