@@ -36,3 +36,7 @@ examples/ts38331-extract.txt
 
 # Eval harness transient output (the pinned run1/run2 artifacts ARE committed)
 eval/results.json
+
+# Raw eval outputs contain spec text and model prose (not redistributable): keep only the sanitised *.public.json
+eval/results-v2-*.json
+!eval/results-v2-*.public.json

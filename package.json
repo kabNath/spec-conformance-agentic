@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test:unit": "tsx scripts/test-llmjson.ts && tsx scripts/test-citation-check.ts && tsx scripts/test-citation-window.ts && tsx scripts/test-gap-check.ts && tsx scripts/eval-regression.ts --selftest",
+    "test:unit": "tsx scripts/test-llmjson.ts && tsx scripts/test-citation-check.ts && tsx scripts/test-citation-window.ts && tsx scripts/test-gap-check.ts && tsx scripts/test-no-spec-text.ts && tsx scripts/eval-regression.ts --selftest",
     "eval:regression": "tsx --env-file=.env.local scripts/eval.ts --ids-file eval/frozen-subset.json --out eval/results-frozen.json && tsx scripts/eval-regression.ts eval/results-frozen.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
