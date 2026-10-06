@@ -12,12 +12,12 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-interface Item { id: string; gold_verdict: string; pred_verdict: string; raw_verdict?: string; review_required: boolean; review_reason?: string; error?: string; gap_check?: { outcome?: string } }
+interface Item { id: string; gold_verdict: string; pred_verdict: string; raw_verdict?: string; review_required: boolean; review_reason?: string; error?: string; system_error?: boolean; gap_check?: { outcome?: string } }
 const ids: string[] = JSON.parse(readFileSync(fileURLToPath(new URL("../eval/frozen-subset.json", import.meta.url)), "utf8")).ids;
 const DEV = new Set(ids);
 
 function stats(items: Item[]) {
-  const scored = items.filter((i) => !i.error);
+  const scored = items.filter((i) => !(i.error || i.system_error));
   const committed = scored.filter((i) => !i.review_required);
   const gap = committed.filter((i) => i.pred_verdict === "gap");
   const trueGaps = gap.filter((i) => i.gold_verdict === "gap");
@@ -26,7 +26,7 @@ function stats(items: Item[]) {
   const raw = scored.filter((i) => i.raw_verdict === "gap");
   const blocked: Record<string, number> = {};
   for (const i of raw) if (i.review_required || i.pred_verdict !== "gap") { const k = i.gap_check?.outcome && i.gap_check.outcome !== "pass" ? i.gap_check.outcome : (i.review_reason ?? "other"); blocked[k] = (blocked[k] ?? 0) + 1; }
-  return { n: items.length, scored: scored.length, systemErrors: items.filter((i) => i.error).map((i) => i.id),
+  return { n: items.length, scored: scored.length, systemErrors: items.filter((i) => i.error || i.system_error).map((i) => i.id),
     committed: committed.length, coverage: scored.length ? committed.length / scored.length : 0,
     goldGaps: goldGaps.length, rawGaps: raw.length, rawGapsTrue: raw.filter((i) => i.gold_verdict === "gap").length,
     committedGaps: gap.length, trueGaps: trueGaps.length, falseGaps: falseGaps.length, falseGapIds: falseGaps.map((i) => i.id),

@@ -16,13 +16,13 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-export interface Item { id: string; verdict_correct: boolean; review_required: boolean; error?: string }
+export interface Item { id: string; verdict_correct: boolean; review_required: boolean; error?: string; system_error?: boolean }
 export interface RunStats { scored: number; committed: number; committedErrors: number; sentToReview: number }
 export interface Baseline { runs: RunStats[]; worstCommittedErrors: number }
 
 export function runStats(items: Item[], frozenIds: string[]): RunStats {
   const frozen = new Set(frozenIds);
-  const scored = items.filter((i) => frozen.has(i.id) && !i.error);
+  const scored = items.filter((i) => frozen.has(i.id) && !(i.error || i.system_error));
   const committed = scored.filter((i) => !i.review_required);
   return { scored: scored.length, committed: committed.length, committedErrors: committed.filter((i) => !i.verdict_correct).length,
     sentToReview: scored.length - committed.length };

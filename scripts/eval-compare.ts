@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 
 interface Item { id: string; gold_verdict: string; pred_verdict: string; pred_clause: string | null; gold_clause: string | null; verdict_correct: boolean;
-  review_required: boolean; clause_outcome: string; error?: string }
+  review_required: boolean; clause_outcome: string; error?: string; system_error?: boolean }
 type Run = { items: Item[] };
 const V = ["conformant", "gap", "insufficient"];
 
@@ -24,7 +24,7 @@ export const frac = (k: number, n: number) => {
 const retrievalOk = (r: Item) => r.clause_outcome === "exact" || r.clause_outcome === "family" || r.clause_outcome === "correct_abstain";
 
 export function metrics(run: Run) {
-  const all = run.items, sc = all.filter((i) => !i.error);
+  const all = run.items, sc = all.filter((i) => !(i.error || i.system_error));
   const correct = sc.filter((i) => i.verdict_correct).length;
   const committed = sc.filter((i) => !i.review_required), silent = committed.filter((i) => !i.verdict_correct);
   const conf: Record<string, Record<string, number>> = Object.fromEntries(V.map((g) => [g, Object.fromEntries(V.map((p) => [p, 0]))]));
@@ -34,7 +34,7 @@ export function metrics(run: Run) {
     return { c, tp, fp, fn, support: tp + fn, precision: tp + fp ? tp / (tp + fp) : null, recall: tp + fn ? tp / (tp + fn) : null };
   });
   const retOk = sc.filter(retrievalOk), retBad = sc.filter((i) => !retrievalOk(i));
-  return { n: all.length, scored: sc.length, errored: all.filter((i) => i.error).map((i) => i.id), correct, committed: committed.length,
+  return { n: all.length, scored: sc.length, errored: all.filter((i) => i.error || i.system_error).map((i) => i.id), correct, committed: committed.length,
     committedCorrect: committed.length - silent.length, silent: silent.map((i) => `${i.id} (${i.gold_verdict}→${i.pred_verdict})`), toReview: sc.length - committed.length,
     conf, perClass, retOk: retOk.length, vGivenOk: retOk.filter((i) => i.verdict_correct).length, retBad: retBad.length, vGivenBad: retBad.filter((i) => i.verdict_correct).length };
 }
@@ -42,7 +42,7 @@ export function metrics(run: Run) {
 export function agreement(a: Run, b: Run) {
   const A = new Map(a.items.map((i) => [i.id, i])), B = new Map(b.items.map((i) => [i.id, i]));
   const ids = [...A.keys()];
-  const state = (i: Item) => (i.error ? "ERROR" : i.pred_verdict);
+  const state = (i: Item) => ((i.error || i.system_error) ? "ERROR" : i.pred_verdict);
   const both = ids.filter((id) => !A.get(id)!.error && !B.get(id)!.error);
   const cl = both.filter((id) => A.get(id)!.pred_clause && B.get(id)!.pred_clause);
   return { all: ids.filter((id) => state(A.get(id)!) === state(B.get(id)!)).length, nAll: ids.length,
