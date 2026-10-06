@@ -33,9 +33,36 @@ export type QuoteCheck = "ok" | "too_short" | "not_verbatim";
  * "not_verbatim": it is missing/empty or does not occur in the clause.
  */
 export function checkQuote(quote: string | undefined | null, clauseText: string): QuoteCheck {
-  const q = normalizeWs(quote ?? "");
-  if (!q || !normalizeWs(clauseText).includes(q)) return "not_verbatim";
-  return q.split(" ").length < MIN_QUOTE_WORDS ? "too_short" : "ok";
+  const q = canonicalizeQuote(quote ?? "", clauseText);
+  const n = normalizeWs(q);
+  if (!n || !normalizeWs(clauseText).includes(n)) return "not_verbatim";
+  return n.split(" ").length < MIN_QUOTE_WORDS ? "too_short" : "ok";
+}
+
+const flipFirst = (s: string) => {
+  const c = s[0];
+  return c.toLowerCase() === c.toUpperCase() ? s : (c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()) + s.slice(1);
+};
+
+/**
+ * The one case difference that is tolerated: the FIRST letter of the quote. A quote that starts at the beginning of a sentence is often
+ * written with a lower-case initial ("the terminal…" for "The terminal…"), or the reverse. Any other case difference (e.g. "cch1" for
+ * "CCH1") is still refused. Returns the clause's own spelling when the quote is exact up to its first letter, else the quote unchanged
+ * (whitespace-normalised, so that downstream code can rely on it being an exact slice whenever the check passes).
+ */
+export function canonicalizeQuote(quote: string, clauseText: string): string {
+  const q = normalizeWs(quote);
+  if (!q) return q;
+  const clause = normalizeWs(clauseText);
+  if (clause.includes(q)) return q;
+  const v = flipFirst(q);
+  return v !== q && clause.includes(v) ? v : q;
+}
+
+/** True iff the quote is NOT an exact slice of the clause but becomes one when its first letter's case is flipped. */
+export function firstLetterCaseOnly(quote: string, clauseText: string): boolean {
+  const q = normalizeWs(quote);
+  return !!q && !normalizeWs(clauseText).includes(q) && canonicalizeQuote(q, clauseText) !== q;
 }
 
 /** True iff `quote` (non-trivial) occurs verbatim in `clauseText`, whitespace-normalised. */

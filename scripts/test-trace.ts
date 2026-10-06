@@ -21,6 +21,13 @@ check("accepted quote: status verified, text kept (already stored as the excerpt
   t.trace.assessor.quote.status === "verified" && t.trace.assessor.quote.text === QUOTE_OK && t.trace.assessor.quote.sha256 === sha(QUOTE_OK) && t.trace.assessor.quote.length === QUOTE_OK.length);
 check("accepted quote: nothing goes to the local rejected-quote table", t.rejectedQuoteText === undefined);
 
+// 1b. first-letter case only: verified, flagged, stored with the clause's own spelling; hash/length are those of what the model wrote
+const QUOTE_LC = "t" + QUOTE_OK.slice(1);
+t = buildTrace({ ...base, quote: QUOTE_LC });
+check("first-letter case: status verified, flagged, text = clause spelling, hash of the raw quote",
+  t.trace.assessor.quote.status === "verified" && t.trace.assessor.quote.firstLetterCaseFixed === true && t.trace.assessor.quote.text === QUOTE_OK && t.trace.assessor.quote.sha256 === sha(QUOTE_LC) && t.rejectedQuoteText === undefined);
+check("exact quote: no first-letter flag", buildTrace({ ...base, quote: QUOTE_OK }).trace.assessor.quote.firstLetterCaseFixed === undefined);
+
 // 2. a rejected quote: hash + length in the trace, full text ONLY in the separate local table payload
 t = buildTrace({ ...base, quote: QUOTE_BAD, blockedReason: "citation_not_verbatim", finalVerdict: "insufficient_evidence" });
 const json = JSON.stringify(t.trace);

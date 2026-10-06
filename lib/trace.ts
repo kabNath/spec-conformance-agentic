@@ -7,7 +7,7 @@
 //     for a local table that no export, API route, public file or attestation reads (see lib/graph/persist.ts);
 //   - the gap check keeps its outcome and the two yes/no answers, never the passage, the raw replies or the words it copied.
 import { createHash } from "node:crypto";
-import { checkQuote, normalizeWs } from "./citation-check";
+import { canonicalizeQuote, checkQuote, firstLetterCaseOnly, normalizeWs } from "./citation-check";
 import type { ReviewReason, Verdict, VerifierResult } from "./conformance-contract";
 
 export type QuoteStatus = "verified" | "too_short" | "not_verbatim" | "none";
@@ -17,7 +17,7 @@ export interface RequirementTrace {
   assessor: {
     rawVerdict: Verdict;               // before any guard
     confidence: number;                // the assessor's own confidence
-    quote: { status: QuoteStatus; length: number; sha256: string | null; text?: string };
+    quote: { status: QuoteStatus; length: number; sha256: string | null; text?: string; firstLetterCaseFixed?: true };
   };
   guard: { reason: ReviewReason | null };
   gapCheck?: { outcome: string; sameSubject: boolean | null; contradicts: boolean | null };
@@ -39,7 +39,10 @@ export function buildTrace(i: TraceInput): { trace: RequirementTrace; rejectedQu
   const present = normalizeWs(q).length > 0;
   const status: QuoteStatus = !present ? "none" : (({ ok: "verified", too_short: "too_short", not_verbatim: "not_verbatim" } as const)[checkQuote(q, i.clauseText)]);
   const quote: RequirementTrace["assessor"]["quote"] = { status, length: present ? q.length : 0, sha256: present ? sha256Text(q) : null };
-  if (status === "verified") quote.text = q;
+  if (status === "verified") {
+    quote.text = canonicalizeQuote(q, i.clauseText);  // the clause's own spelling; sha256/length above stay those of what the model wrote
+    if (firstLetterCaseOnly(q, i.clauseText)) quote.firstLetterCaseFixed = true;
+  }
   const parsed = (i.gapCheck?.parsed ?? {}) as { same_subject?: unknown; contradicts?: unknown };
   const trace: RequirementTrace = {
     version: "trace-v1",

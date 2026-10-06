@@ -2,7 +2,7 @@
 // Run: npx tsx scripts/test-citation-check.ts
 import { judge, type JudgeDeps } from "../lib/graph/judge";
 import { existsSync, readFileSync } from "node:fs";
-import { guardVerdict, gapVerifierDecision, isVerbatim, modelFamily, normalizeWs, MIN_QUOTE_WORDS } from "../lib/citation-check";
+import { guardVerdict, gapVerifierDecision, isVerbatim, modelFamily, normalizeWs, MIN_QUOTE_WORDS, checkQuote, canonicalizeQuote, firstLetterCaseOnly } from "../lib/citation-check";
 
 // Paraphrased fixture shaped like TS 38.331 §5.3.5.3 (spec text itself is not redistributed).
 const CLAUSE_5353 =
@@ -81,6 +81,39 @@ async function reasonTests() {
     check("[real data] R28: the assessor's exact 3-word quote is now reported as citation_too_short, not citation_not_verbatim",
       r.reason === "citation_too_short" && raw.assessor_quote.trim().split(/\s+/).length === 3, JSON.stringify(r));
   } else console.log("⏭  [real data] R28 check skipped (raw results / spec extract not present)");
+}
+
+// --- first-letter case tolerance --------------------------------------------------------------------------------
+{
+  // The REAL case of the demo row "release the session immediately… before it answers" (invented demo text): the assessor wrote
+  // the quote with a lower-case first letter although the clause sentence starts with "The".
+  const DEMO_CLAUSE = "5.3.5 Session update The purpose of this procedure is to change an open session, for example to add, modify or remove a traffic channel. " +
+    "The terminal shall apply the parameters carried by the SessionUpdate message in the order received and shall not release the session before it has answered with a SessionUpdateComplete message. " +
+    "If a parameter cannot be applied, the terminal starts the recovery steps described in clause 5.3.3.";
+  const REAL = "the terminal shall apply the parameters carried by the SessionUpdate message in the order received and shall not release the session before it has answered with a SessionUpdateComplete message";
+  check("real demo case: the quote that differs only by its first letter ('the' vs 'The') is now accepted", checkQuote(REAL, DEMO_CLAUSE) === "ok" && firstLetterCaseOnly(REAL, DEMO_CLAUSE));
+  const gReal = guardVerdict({ verdict: "gap", quote: REAL, requirement: "The terminal shall release the session immediately after receiving a SessionUpdate message, before it answers.", clauseText: DEMO_CLAUSE, lexicalGap: false });
+  check("real demo case: the verbatim guard no longer blocks the gap", gReal.reason === undefined && gReal.verdict === "gap", JSON.stringify(gReal));
+  check("real demo case: the canonical quote is the clause's own text (an exact slice), with the clause's capital", canonicalizeQuote(REAL, DEMO_CLAUSE) === "T" + REAL.slice(1) && DEMO_CLAUSE.includes(canonicalizeQuote(REAL, DEMO_CLAUSE)));
+
+  // three invented cases
+  const CL = "The device shall close CCH1 after the update. When CCH1 is closed, the device shall send a report to the network.";
+  check("invented 1: lower-case first letter where the clause has a capital ('the device' vs 'The device') → accepted",
+    checkQuote("the device shall close CCH1 after the update", CL) === "ok" && firstLetterCaseOnly("the device shall close CCH1 after the update", CL));
+  check("invented 2: capital first letter where the clause has lower case ('The device' vs 'the device' mid-sentence) → accepted",
+    checkQuote("The device shall send a report to the network", CL) === "ok" && firstLetterCaseOnly("The device shall send a report to the network", CL));
+  check("invented 3: quote starting at a word with a flipped initial ('Device' vs 'device') → accepted",
+    checkQuote("Device shall close CCH1 after the update", CL) === "ok" && canonicalizeQuote("Device shall close CCH1 after the update", CL) === "device shall close CCH1 after the update");
+
+  // everything else about case stays refused
+  check("'cch1' against 'CCH1' stays refused (a case difference that is not the first letter)", checkQuote("The device shall close cch1 after the update", CL) === "not_verbatim");
+  check("a quote that is lower-case in its first letter AND differs in case elsewhere is refused", checkQuote("the device shall close cch1 after the update", CL) === "not_verbatim");
+  check("a first-letter case difference plus a changed word is refused", checkQuote("the device shall open CCH1 after the update", CL) === "not_verbatim");
+  check("an all-lower-case quote of a mixed-case clause is refused", checkQuote("the device shall close cch1", CL) === "not_verbatim");
+  check("a first character that is not a letter is never 'fixed'", checkQuote("1> the device shall close CCH1", "1> The device shall close CCH1") === "not_verbatim");
+  check("first-letter tolerance does not lower the minimum length: a 3-word case-variant is too short, still", checkQuote("the device shall", CL) === "too_short" && MIN_QUOTE_WORDS === 4);
+  check("an exact quote is unchanged by canonicalisation", canonicalizeQuote("The device shall close CCH1 after the update", CL) === "The device shall close CCH1 after the update");
+  check("a refused quote is returned unchanged by canonicalisation", canonicalizeQuote("the device shall close cch1 after the update", CL) === "the device shall close cch1 after the update");
 }
 
 // --- verifier family --------------------------------------------------------

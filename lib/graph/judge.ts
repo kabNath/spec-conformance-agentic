@@ -3,7 +3,7 @@
 // apply exactly the same rules.
 import { getClause } from "../clients/neo4j";
 import { assessorModel, verifierModel, llmText } from "../clients/openrouter";
-import { guardVerdict, gapVerifierDecision, modelFamily } from "../citation-check";
+import { guardVerdict, gapVerifierDecision, modelFamily, canonicalizeQuote } from "../citation-check";
 import { governingNormative } from "../normative";
 import { buildTrace, type RequirementTrace } from "../trace";
 import { GAP_CHECK_SYSTEM, buildPassage, gapCheckUser, interpretGapCheck, type GapOutcome } from "../gap-check";
@@ -67,6 +67,9 @@ export async function judge(
   const mode = gapGuard();
 
   const full = citations.length > 0 ? await deps.clauseText(standardId, citations[0].clause) : "";
+  // A quote that differs from the clause only by the case of its first letter is replaced by the clause's own spelling
+  // (excerpt, gap passage and verifier then see an exact slice); the raw quote stays in the trace.
+  if (a.quote && full) a = { ...a, quote: canonicalizeQuote(a.quote, full) };
   if (citations.length > 0 && a.verdict !== "insufficient_evidence") {
     const g = guardVerdict({ verdict: a.verdict, quote: a.quote, requirement, clauseText: full, lexicalGap: mode === "lexical" });
     if (g.reason) { a = { ...a, verdict: g.verdict }; blockedReason = g.reason; }
