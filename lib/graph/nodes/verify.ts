@@ -10,6 +10,6 @@ export async function verify(req: string, verdict: Verdict, citations: Conforman
     'supports the verdict. Be skeptical. Reply ONLY JSON {"agrees":<bool>,"confidence":0.0,"note":"..."}';
   const block = citations.map((c) => `[${c.display}]\n${c.text}`).join("\n---\n");
   const d = await llmJSON<VerifierResult>(sys, `REQUIREMENT:\n${req}\nVERDICT: ${verdict}\n` +
-    (quote ? `QUOTED EXCERPT:\n${quote}\n` : "") + `CLAUSES:\n${block}`, { model: verifierModel(), role: "verifier" });
+    (quote ? `QUOTED EXCERPT:\n${quote}\n` : "") + `CLAUSES:\n${block}`, { model: verifierModel(), role: "verifier", pin: true });
   return { agrees: Boolean(d.agrees), confidence: Math.max(0, Math.min(1, Number(d.confidence) || 0)), note: d.note ?? "" };
 }

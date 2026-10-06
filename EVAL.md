@@ -503,6 +503,24 @@ error per run, 10 committed, 5 to review); it is replaced by the v2 numbers afte
 unit-tested in CI (`npm run test:unit`); the live check is `npm run eval:regression` and is **not** in public CI
 because it needs the corpus (not redistributable), the keys and the databases.
 
+## Limites de cette évaluation (limits of this evaluation)
+
+This section is about the evaluation of the `GAP_GUARD=verifier` rule (pre-registered in
+[`eval/PREREGISTRATION-gap-guard.md`](eval/PREREGISTRATION-gap-guard.md)). The gold set is **no longer pristine for this rule**:
+
+- The author of the rule (this project) had read the v1 failure analysis above — which items fail, why, and the R10 case study —
+  before designing it. The 16 DEV items were additionally used to diagnose why the previous lexical rule blocked true gaps.
+- The "permitted / optionally" clause of question (b) was written after seeing R14 (a requirement more specific than an
+  "optionally" clause in the specification).
+- The handling of NOTEs (attached to the verifier's input, with the "NOTE … permitted or excepted" sentence) was designed with
+  R39/R40 (NOTE-based loopholes, see *Gold set → Composition*) in mind; they are in the TEST group.
+- The TEST group (24 items) contains **only 10 true gaps** (16 gold gaps − 6 in DEV): recall there moves in steps of 10 points
+  and one item decides a criterion.
+- Two passes of the same 40 items at temperature 0 measure stability, not independent samples; one assessor model, one verifier
+  model, one spec extract.
+
+Nothing was tuned on the TEST group: prompts, caps and criteria were committed before the first paid call.
+
 ## Changelog
 
 - **v2 (pending)** — citation guards, other-family verifier, frozen-subset regression gate; **harness and unit tests done, evaluation not yet run** (see *v2*).

@@ -29,7 +29,10 @@ export type ReviewReason =
   | "conflicting_clauses"
   | "citation_not_verbatim"   // the cited excerpt is not verbatim in the ingested clause → verdict forced to insufficient_evidence
   | "gap_not_grounded"        // a gap needs a shall/must sentence about the requirement's subject → forced to insufficient_evidence
-  | "verifier_same_family";   // a gap may only commit after an independent model family agrees
+  | "verifier_same_family"
+  | "gap_off_subject"          // GAP_GUARD=verifier: the cited passage is not about the requirement's subject
+  | "gap_no_contradiction"     // …or it does not contradict the requirement (silence / permitted / excepted by a NOTE)
+  | "gap_verifier_unusable";   // …or the verifier's answer was malformed or cited words that are not in the texts   // a gap may only commit after an independent model family agrees
 
 export type RunStatus = "queued" | "running" | "complete" | "failed";
 

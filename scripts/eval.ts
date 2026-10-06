@@ -76,6 +76,9 @@ interface ItemResult {
   /** How the verifier changed the outcome: nothing, forced a review, or blocked a gap commit. */
   verifier_effect?: "none" | "forced_review" | "gap_blocked_verifier_disagreement" | "gap_blocked_same_family";
   call_ids?: { id?: string; model: string; role: string }[];
+  /** The assessor's exact quote, and for GAP_GUARD=verifier what the verifier was shown and answered (raw JSON). */
+  assessor_quote?: string;
+  gap_check?: unknown;
   assessor_confidence: number;
   verifier_agrees: boolean;
   verifier_confidence: number;
@@ -114,7 +117,7 @@ async function evalOne(item: GoldItem): Promise<ItemResult> {
 
   const { citations = [], path = [] } = await retrieveNode(state);
   // Same judge (assess → citation guards → verify) as compileNode in lib/graph/pipeline.ts.
-  const { a, v, blockedReason, rawVerdict } = await judge(item.requirement, STANDARD_ID, citations);
+  const { a, v, blockedReason, rawVerdict, quote, gapCheck } = await judge(item.requirement, STANDARD_ID, citations);
 
   // Review flag — same logic as compileNode.
   let review: { required: boolean; reason?: ReviewReason };
@@ -155,6 +158,8 @@ async function evalOne(item: GoldItem): Promise<ItemResult> {
     review_without_verifier: without,
     verifier_effect: effect,
     call_ids: callLog.slice(callsBefore),
+    assessor_quote: quote,
+    gap_check: gapCheck,
     assessor_confidence: a.confidence,
     verifier_agrees: v.agrees,
     verifier_confidence: v.confidence,
@@ -450,6 +455,8 @@ async function main() {
       spec: gold.meta.spec, version: gold.meta.version, release: gold.meta.release,
       model: process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4.6",
       verifierModel: process.env.OPENROUTER_VERIFIER_MODEL ?? null, // null ⇒ same model as the assessor
+      gapGuard: process.env.GAP_GUARD ?? "verifier",
+      verifierProvider: process.env.OPENROUTER_VERIFIER_PROVIDER ?? null,
       citationGuards: true, // verbatim excerpt + grounded-gap + other-family verifier (lib/graph/judge.ts)
       subset: only ? only.length : null,
       embeddingsModel: process.env.EMBEDDINGS_MODEL ?? "openai/text-embedding-3-small",

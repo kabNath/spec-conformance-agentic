@@ -72,9 +72,11 @@ const stub = (verdict: "gap" | "conformant", quote: string, agrees: boolean): Ju
   assess: async () => ({ verdict, confidence: 0.95, normative: "shall", quote }),
   verify: async () => ({ agrees, confidence: 0.92, note: "stub" }),
   clauseText: async () => CLAUSE_5353,
+  gapCheckCall: async () => { throw new Error("gap check must not be called under GAP_GUARD=lexical"); },
 });
 
 async function judgeTests() {
+  process.env.GAP_GUARD = "lexical"; // these cases pin the lexical rule; the verifier guard is tested in test-gap-check.ts
   process.env.OPENROUTER_MODEL = "anthropic/claude-sonnet-4.6";
   process.env.OPENROUTER_VERIFIER_MODEL = "openai/gpt-x";
   // The exact EVAL.md failure: assessor says gap @0.95, verifier agrees @0.92.

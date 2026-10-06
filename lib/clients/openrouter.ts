@@ -18,16 +18,29 @@ export function verifierModel(): string | undefined {
   return process.env.OPENROUTER_VERIFIER_MODEL || undefined;
 }
 
-function llm(model: string = assessorModel()): ChatOpenAI {
-  let c = _llms.get(model);
+/**
+ * Provider pin for verifier calls: OPENROUTER_VERIFIER_PROVIDER="google-vertex" (comma-separated slugs) sends
+ * provider: { only: [...], allow_fallbacks: false, data_collection: "deny" } so the request goes to that provider
+ * or fails — never silently to another one. See https://openrouter.ai/docs/guides/routing/provider-selection
+ */
+export function verifierProviderPin(): { only: string[]; allow_fallbacks: false; data_collection: "deny" } | undefined {
+  const slugs = (process.env.OPENROUTER_VERIFIER_PROVIDER ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return slugs.length ? { only: slugs, allow_fallbacks: false, data_collection: "deny" } : undefined;
+}
+
+function llm(model: string = assessorModel(), pin = false): ChatOpenAI {
+  const provider = pin ? verifierProviderPin() : undefined;
+  const key = `${model}|${provider ? JSON.stringify(provider) : ""}`;
+  let c = _llms.get(key);
   if (!c) {
     c = new ChatOpenAI({
       apiKey: process.env.OPENROUTER_API_KEY,
       model,
       temperature: 0,
       configuration: { baseURL: "https://openrouter.ai/api/v1" },
+      ...(provider ? { modelKwargs: { provider } } : {}),
     });
-    _llms.set(model, c);
+    _llms.set(key, c);
   }
   return c;
 }
@@ -45,8 +58,8 @@ export const llmStats = {
 /** One entry per LLM call: lets the eval harness look up real provider + cost on OpenRouter afterwards. */
 export const callLog: { id: string | undefined; model: string; role: string }[] = [];
 
-async function callJSON<T>(system: string, user: string, model?: string, role = "assessor"): Promise<T> {
-  const res = await llm(model).invoke([
+async function callText(system: string, user: string, model?: string, role = "assessor", pin = false): Promise<string> {
+  const res = await llm(model, pin).invoke([
     { role: "system", content: system },
     { role: "user", content: user },
   ]);
@@ -54,18 +67,27 @@ async function callJSON<T>(system: string, user: string, model?: string, role = 
   callLog.push({ id: (res as unknown as { id?: string }).id, model: model ?? assessorModel(), role });
   const u = (res as unknown as { usage_metadata?: { input_tokens?: number; output_tokens?: number } }).usage_metadata;
   if (u) { llmStats.inputTokens += u.input_tokens ?? 0; llmStats.outputTokens += u.output_tokens ?? 0; }
-  return JSON.parse(extractJSON(String(res.content))) as T;
+  return String(res.content);
+}
+
+async function callJSON<T>(system: string, user: string, model?: string, role = "assessor", pin = false): Promise<T> {
+  return JSON.parse(extractJSON(await callText(system, user, model, role, pin))) as T;
+}
+
+/** Raw model reply (no parsing), so callers can log it verbatim. */
+export async function llmText(system: string, user: string, opts: { model?: string; role?: string; pin?: boolean } = {}): Promise<string> {
+  return callText(system, user, opts.model, opts.role, opts.pin);
 }
 
 /** Ask for strict JSON and parse it, tolerating fences/prose; retry once. */
-export async function llmJSON<T>(system: string, user: string, opts: { model?: string; role?: string } = {}): Promise<T> {
+export async function llmJSON<T>(system: string, user: string, opts: { model?: string; role?: string; pin?: boolean } = {}): Promise<T> {
   try {
-    return await callJSON<T>(system, user, opts.model, opts.role);
+    return await callJSON<T>(system, user, opts.model, opts.role, opts.pin);
   } catch {
     // Models occasionally append a trailing sentence — retry once, insisting on raw JSON.
     return await callJSON<T>(
       `${system}\nReturn ONLY the raw JSON value — no prose, no markdown, no code fences.`,
-      user, opts.model, opts.role
+      user, opts.model, opts.role, opts.pin
     );
   }
 }

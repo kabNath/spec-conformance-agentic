@@ -78,13 +78,15 @@ export interface GuardOutcome { verdict: Verdict; reason?: GuardReason; detail?:
  */
 export function guardVerdict(i: {
   verdict: Verdict; quote?: string; requirement: string; clauseText: string;
+  /** GAP_GUARD=lexical applies the shall/must + term-coverage rule; GAP_GUARD=verifier replaces it (lib/gap-check.ts). */
+  lexicalGap?: boolean;
 }): GuardOutcome {
   if (i.verdict === "insufficient_evidence") return { verdict: i.verdict };
   if (!isVerbatim(i.quote, i.clauseText)) {
     return { verdict: "insufficient_evidence", reason: "citation_not_verbatim",
       detail: "the cited excerpt is missing, too short, or not found verbatim in the clause text" };
   }
-  if (i.verdict === "gap") {
+  if (i.verdict === "gap" && i.lexicalGap !== false) {
     const g = gapGrounding(i.quote!, i.requirement);
     if (!g.ok) {
       return { verdict: "insufficient_evidence", reason: "gap_not_grounded",
