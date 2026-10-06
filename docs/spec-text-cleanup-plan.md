@@ -1,6 +1,6 @@
 # Plan: remove 3GPP specification text from the repository (NOT executed)
 
-Status: **proposal only.** Nothing below has been run; no tracked spec-bearing file has been modified.
+Status: **step 1 (replacing the files, history untouched) was applied in commit `6c6c6b6`**; the history rewrite is **not** executed. A dry-run simulation is in `docs/history-rewrite-simulation.md` (all 45 commits would change SHA). The table below describes the state *before* step 1.
 Audit tool: `scripts/audit-spec-text.ts` (counts and lengths only, never prints the text). A "span" is ≥ 9 consecutive words that also occur in the local spec extract.
 
 ## What contains spec text (tracked files)
