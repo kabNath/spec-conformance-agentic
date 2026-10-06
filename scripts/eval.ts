@@ -21,8 +21,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { retrieveNode } from "../lib/graph/nodes/retrieve";
-import { assess } from "../lib/graph/nodes/assess";
-import { verify } from "../lib/graph/nodes/verify";
+import { judge } from "../lib/graph/judge";
 import { llmStats } from "../lib/clients/openrouter";
 import type { ConformanceStateT } from "../lib/graph/state";
 import type { Verdict, ReviewReason } from "../lib/conformance-contract";
@@ -66,6 +65,7 @@ interface ItemResult {
   gold_verdict: GoldVerdict;
   gold_clause: string | null;
   pred_verdict: GoldVerdict;
+  raw_verdict?: GoldVerdict; // assessor's verdict before the citation guards (v2)
   pred_clause: string | null;
   verdict_correct: boolean;
   clause_outcome: "exact" | "family" | "wrong_clause" | "no_citation" | "correct_abstain" | "spurious_citation";
@@ -107,12 +107,13 @@ async function evalOne(item: GoldItem): Promise<ItemResult> {
   } as unknown as ConformanceStateT;
 
   const { citations = [], path = [] } = await retrieveNode(state);
-  const a = await assess(item.requirement, citations);
-  const v = await verify(item.requirement, a.verdict, citations);
+  // Same judge (assess → citation guards → verify) as compileNode in lib/graph/pipeline.ts.
+  const { a, v, blockedReason, rawVerdict } = await judge(item.requirement, STANDARD_ID, citations);
 
-  // Review flag — same logic as compileNode in lib/graph/pipeline.ts.
+  // Review flag — same logic as compileNode.
   let review: { required: boolean; reason?: ReviewReason };
   if (citations.length === 0) review = { required: true, reason: "no_clause_found" };
+  else if (blockedReason) review = { required: true, reason: blockedReason };
   else if (!v.agrees) review = { required: true, reason: "verifier_disagreement" };
   else if (a.confidence < REVIEW_THRESHOLD) review = { required: true, reason: "low_confidence" };
   else review = { required: false };
@@ -128,6 +129,7 @@ async function evalOne(item: GoldItem): Promise<ItemResult> {
     gold_verdict: goldVerdict,
     gold_clause: item.governing_clause,
     pred_verdict: predVerdict,
+    raw_verdict: normalizeVerdict(rawVerdict),
     pred_clause: predClause,
     verdict_correct: predVerdict === goldVerdict,
     clause_outcome: clauseOutcome(item.governing_clause, predClause),

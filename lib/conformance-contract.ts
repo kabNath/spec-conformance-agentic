@@ -26,7 +26,10 @@ export type ReviewReason =
   | "low_confidence"
   | "verifier_disagreement"
   | "no_clause_found"
-  | "conflicting_clauses";
+  | "conflicting_clauses"
+  | "citation_not_verbatim"   // the cited excerpt is not verbatim in the ingested clause → verdict forced to insufficient_evidence
+  | "gap_not_grounded"        // a gap needs a shall/must sentence about the requirement's subject → forced to insufficient_evidence
+  | "verifier_same_family";   // a gap may only commit after an independent model family agrees
 
 export type RunStatus = "queued" | "running" | "complete" | "failed";
 
@@ -39,6 +42,8 @@ export interface ClauseCitation {
   clause: string;            // clause path, e.g. "5.5.3"
   clauseTitle?: string;      // e.g. "Ephemeris and timing validity"
   text: string;              // EXACT span that grounds the claim, verbatim
+  /** The assessor's supporting quote; set only once verified verbatim against the full clause text. */
+  excerpt?: string;
   normative: NormativeKeyword;
   page?: number;
   charStart?: number;

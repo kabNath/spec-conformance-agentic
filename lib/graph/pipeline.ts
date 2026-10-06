@@ -7,8 +7,7 @@ import { StateGraph, END, START } from "@langchain/langgraph";
 import { ConformanceState, type ConformanceStateT } from "./state";
 import { extractNode } from "./nodes/extract";
 import { retrieveNode } from "./nodes/retrieve";
-import { assess } from "./nodes/assess";
-import { verify } from "./nodes/verify";
+import { judge } from "./judge";
 import { prisma } from "../clients/prisma";
 import type { EvaluatedRequirement, RunSummary, ReviewReason } from "../conformance-contract";
 import { attest } from "../clients/vidimus";
@@ -16,21 +15,22 @@ import { attest } from "../clients/vidimus";
 // compile = assess + verify + build one matrix row + advance the cursor.
 async function compileNode(s: ConformanceStateT): Promise<Partial<ConformanceStateT>> {
   const req = s.requirements[s.cursor];
-  const a = await assess(req.requirement, s.citations);
-  const v = await verify(req.requirement, a.verdict, s.citations);
+  // assess + deterministic citation guards + verifier (see lib/graph/judge.ts)
+  const { a, v, blockedReason, citations } = await judge(req.requirement, s.standardId, s.citations);
 
   // Vidimus: empirical (tranche-accuracy) confidence + signed attestation. When the
   // tranche is too small to calibrate, fall back to the raw LLM signal and route to review.
   const att = await attest({
     requirement: req.requirement, verdict: a.verdict,
     assessorConfidence: a.confidence, verifierConfidence: v.confidence,
-    verifierAgrees: v.agrees, citations: s.citations,
+    verifierAgrees: v.agrees, citations,
   });
   const confidence = att.calibrated && att.calibratedConfidence !== null
     ? att.calibratedConfidence : att.rawConfidence;
 
   let review: { required: boolean; reason?: ReviewReason };
   if (s.citations.length === 0) review = { required: true, reason: "no_clause_found" };
+  else if (blockedReason) review = { required: true, reason: blockedReason };
   else if (!v.agrees) review = { required: true, reason: "verifier_disagreement" };
   else if (!att.calibrated || confidence < s.reviewThreshold) review = { required: true, reason: "low_confidence" };
   else review = { required: false };
@@ -38,7 +38,7 @@ async function compileNode(s: ConformanceStateT): Promise<Partial<ConformanceSta
   const row: EvaluatedRequirement = {
     id: crypto.randomUUID(), runId: s.runId, requirement: req.requirement,
     source: { documentId: s.standardId, documentName: s.implDocName, section: req.section },
-    citations: s.citations, verdict: a.verdict, normative: a.normative, confidence,
+    citations, verdict: a.verdict, normative: a.normative, confidence,
     verifier: v, review, gapNote: a.gapNote, retrievalPath: s.path, attestation: att,
     model: process.env.OPENROUTER_MODEL ?? "", evaluatedAt: new Date().toISOString(),
   };
