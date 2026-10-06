@@ -1,0 +1,52 @@
+# Pre-registration of the gap-guard evaluation — integrity record
+
+The pre-registration of the `GAP_GUARD=verifier` evaluation is the file [`eval/PREREGISTRATION-gap-guard.md`](../eval/PREREGISTRATION-gap-guard.md),
+committed on **2026-10-06T19:37:18+08:00** in commit **`ad3175f1ffef683855172fdde73093373483004e`** (`ad3175f1`), before the first paid call of that evaluation.
+This page records its SHA-256 and a signature over that hash, so the record survives a rewrite of the git history (which would change every commit hash after the first rewritten commit).
+
+| | |
+|---|---|
+| document | `eval/PREREGISTRATION-gap-guard.md` |
+| SHA-256 of the file at commit `ad3175f1` | `77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014` |
+| origin commit | `ad3175f1ffef683855172fdde73093373483004e` |
+| origin commit date | `2026-10-06T19:37:18+08:00` |
+| signed at (UTC, asserted by the signer) | `2026-10-06T12:46:38Z` |
+| signing key id (SHA-256 of the public key) | `85ac30de1f1542c45a778351c32f7cf1fee7346d534a0c9059e5bbfe51cd84be` |
+| public key (Ed25519, hex) | `090e93534a2f1002b84beac8990905761965abd16b208858de09c546154fa612` |
+| signature (Ed25519, hex) | `8aa8e6f058566418fc597d3b96021a6d32083e2ec6b8ad4cef269a0866537d0764283aaf3b0b7dda203be520932a4a1e48586d2c0c242d4a24ab7aefe5405a0f` |
+
+The file in the working tree at signing time has the same hash as the file at the origin commit (checked with `git show ad3175f1:eval/PREREGISTRATION-gap-guard.md | shasum -a 256`).
+
+## What was signed
+The Ed25519 signature is over the **RFC 8785-style canonical JSON** (`vidimus.audit.canonical.canonicalize`, 429 bytes) of this object:
+
+```json
+{
+  "type": "vidimus.document-attestation.v1",
+  "document": "eval/PREREGISTRATION-gap-guard.md",
+  "sha256": "77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014",
+  "origin_commit": "ad3175f1ffef683855172fdde73093373483004e",
+  "origin_commit_date": "2026-10-06T19:37:18+08:00",
+  "signed_at": "2026-10-06T12:46:38Z",
+  "statement": "The signer vouches that the document with this SHA-256 is the pre-registration committed at origin_commit."
+}
+```
+
+Signed with the sidecar's signing key by the existing code (`main.get_signing_key` + `vidimus.audit.signing.sign_hex`) inside the running container; the key was never printed or copied out.
+The public key is the one served by the sidecar at `GET /pubkey`.
+
+## Verify
+Needs the `vidimus` Python package. Save the object above as `payload.json`, then:
+
+```bash
+python -c "import json; from vidimus.audit.canonical import canonicalize; from vidimus.audit.keys import public_key_from_hex; from vidimus.audit.signing import verify_hex; p=json.load(open('payload.json')); print(verify_hex(public_key_from_hex('090e93534a2f1002b84beac8990905761965abd16b208858de09c546154fa612'), '8aa8e6f058566418fc597d3b96021a6d32083e2ec6b8ad4cef269a0866537d0764283aaf3b0b7dda203be520932a4a1e48586d2c0c242d4a24ab7aefe5405a0f', canonicalize(p)))"
+```
+
+and check that the `sha256` in the object is the SHA-256 of the pre-registration file (`shasum -a 256 eval/PREREGISTRATION-gap-guard.md`).
+
+## What this does and does not prove
+- It proves that the document with this hash existed in this exact form when the key holder signed it, and that it is the file committed at `ad3175f1`.
+- It does **not** by itself prove that the document was written *before* the evaluation runs: `signed_at` is asserted by the signer and the signature was made after the runs. The timestamp evidence is the git commit date and parent chain of
+  `ad3175f1` (and the results files being generated afterwards), plus any copy of the repository taken before a history rewrite (a `git bundle` of the repository is kept for that purpose).
+- The signing key is the sidecar's **local development key**, generated on first start of the compose stack. It is **not** listed in `vidimus-svc/trusted-keys.json`, so a verifier pinned to that file would reject it.
+  For a record that outlives this machine, re-sign with the production key (after it is registered in `trusted-keys.json`) and keep this page as a second witness.
