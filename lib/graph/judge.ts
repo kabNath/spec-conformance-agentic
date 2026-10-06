@@ -4,6 +4,7 @@
 import { getClause } from "../clients/neo4j";
 import { assessorModel, verifierModel, llmText } from "../clients/openrouter";
 import { guardVerdict, gapVerifierDecision, modelFamily } from "../citation-check";
+import { governingNormative } from "../normative";
 import { GAP_CHECK_SYSTEM, buildPassage, gapCheckUser, interpretGapCheck, type GapOutcome } from "../gap-check";
 import type { ReviewReason, VerifierResult } from "../conformance-contract";
 import { assess, type AssessOut } from "./nodes/assess";
@@ -61,8 +62,8 @@ export async function judge(
   let gapCheck: GapCheckRecord | undefined;
   const mode = gapGuard();
 
+  const full = citations.length > 0 ? await deps.clauseText(standardId, citations[0].clause) : "";
   if (citations.length > 0 && a.verdict !== "insufficient_evidence") {
-    const full = await deps.clauseText(standardId, citations[0].clause);
     const g = guardVerdict({ verdict: a.verdict, quote: a.quote, requirement, clauseText: full, lexicalGap: mode === "lexical" });
     if (g.reason) { a = { ...a, verdict: g.verdict }; blockedReason = g.reason; }
     else cited = citations.map((c, i) => (i === 0 ? { ...c, excerpt: a.quote } : c));
@@ -88,6 +89,13 @@ export async function judge(
         if (r.outcome !== "pass") { a = { ...a, verdict: "insufficient_evidence" }; blockedReason = r.outcome; }
       }
     }
+  }
+
+  // "Norm" column: force of the sentence that governs THIS requirement (verified excerpt, else the clause text);
+  // when nothing overlaps, keep the clause-level value from the assessor.
+  if (citations.length > 0) {
+    const g = governingNormative(cited[0].excerpt ?? full, requirement);
+    if (g) a = { ...a, normative: g.force };
   }
 
   const v = await deps.verify(requirement, a.verdict, citations, blockedReason ? undefined : a.quote);

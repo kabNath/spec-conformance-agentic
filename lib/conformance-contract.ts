@@ -113,7 +113,7 @@ export interface EvaluatedRequirement {
 
   citations: ClauseCitation[]; // empty ⇒ verdict must be insufficient_evidence
   verdict: Verdict;
-  normative: NormativeKeyword; // strongest force across cited clauses
+  normative: NormativeKeyword; // force of the cited sentence that governs THIS requirement (lib/normative.ts); clause-level strongest keyword only when no sentence overlaps
   confidence: number;          // 0..1 (trust layer)
 
   verifier: VerifierResult;
