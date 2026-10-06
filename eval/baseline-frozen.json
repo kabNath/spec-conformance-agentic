@@ -1,21 +1,21 @@
 {
   "source": [
-    "eval/results-run1.json",
-    "eval/results-run2.json"
+    "eval/results-v2-gapguard-1.public.json",
+    "eval/results-v2-gapguard-2.public.json"
   ],
   "frozenSubset": "frozen-v1",
   "runs": [
     {
-      "scored": 15,
-      "committed": 10,
-      "committedErrors": 1,
-      "sentToReview": 5
+      "scored": 16,
+      "committed": 5,
+      "committedErrors": 0,
+      "sentToReview": 11
     },
     {
-      "scored": 15,
-      "committed": 10,
+      "scored": 16,
+      "committed": 6,
       "committedErrors": 1,
-      "sentToReview": 5
+      "sentToReview": 10
     }
   ],
   "worstCommittedErrors": 1
