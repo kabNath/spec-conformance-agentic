@@ -2,6 +2,7 @@ import { neighbours, getClause, type ClauseNode } from "../../clients/neo4j";
 import { searchClauses } from "../../clients/qdrant";
 import { llmJSON } from "../../clients/openrouter";
 import { citationDisplay, type ClauseCitation, type NormativeKeyword } from "../../conformance-contract";
+import { selectWindow } from "../../citation-window";
 import type { ConformanceStateT } from "../state";
 
 const MAX_HOPS = 4, MAX_RESEEDS = 2;
@@ -59,9 +60,11 @@ export async function retrieveNode(s: ConformanceStateT): Promise<Partial<Confor
 
     if (found) {
       const c = await getClause(s.standardId, found);
+      // Relevance-selected window (was: first 500 chars, which clipped the governing sentence — R06/R08).
+      const win = selectWindow(String(c?.text ?? ""), req.requirement);
       const base = {
         spec: s.standardMeta.spec, version: s.standardMeta.version, release: s.standardMeta.release,
-        clause: found, clauseTitle: c?.title, text: String(c?.text ?? "").slice(0, 500),
+        clause: found, clauseTitle: c?.title, text: win.text, charStart: win.start, charEnd: win.end,
         normative: (c?.normative ?? "none") as NormativeKeyword,
       };
       const citation: ClauseCitation = { ...base, display: citationDisplay(base) };
