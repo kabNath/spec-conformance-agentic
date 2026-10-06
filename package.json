@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test:db": "tsx --env-file=.env.local scripts/test-trace-db.ts",
     "dev:demo": "DEMO_MODE=1 GAP_GUARD=verifier OPENROUTER_VERIFIER_MODEL=${OPENROUTER_VERIFIER_MODEL:-google/gemini-3.8-flash} OPENROUTER_VERIFIER_PROVIDER=${OPENROUTER_VERIFIER_PROVIDER:-google-vertex} next dev -H localhost",
-    "test:unit": "tsx scripts/test-llmjson.ts && tsx scripts/test-citation-check.ts && tsx scripts/test-citation-window.ts && tsx scripts/test-gap-check.ts && tsx scripts/test-no-spec-text.ts && tsx scripts/test-ablation.ts && tsx scripts/test-demo-mode.ts && tsx scripts/test-trace.ts && tsx scripts/test-extraction-set.ts && tsx scripts/test-normative.ts && tsx --tsconfig tsconfig.test.json scripts/test-confidence-panel.ts && tsx scripts/eval-regression.ts --selftest",
+    "test:unit": "tsx scripts/test-llmjson.ts && tsx scripts/test-citation-check.ts && tsx scripts/test-citation-window.ts && tsx scripts/test-gap-check.ts && tsx scripts/test-no-spec-text.ts && tsx scripts/test-ablation.ts && tsx scripts/test-demo-mode.ts && tsx scripts/test-trace.ts && tsx scripts/test-extraction-set.ts && tsx scripts/test-normative.ts && tsx scripts/test-export.ts && tsx --tsconfig tsconfig.test.json scripts/test-confidence-panel.ts && tsx scripts/eval-regression.ts --selftest",
     "eval:regression": "GAP_GUARD=verifier OPENROUTER_VERIFIER_MODEL=google/gemini-3.8-flash OPENROUTER_VERIFIER_PROVIDER=google-vertex tsx --env-file=.env.local scripts/eval.ts --ids-file eval/frozen-subset.json --out eval/results-v2-frozen-check.json && tsx scripts/eval-regression.ts eval/results-v2-frozen-check.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
