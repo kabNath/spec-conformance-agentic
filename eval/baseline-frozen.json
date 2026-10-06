@@ -4,8 +4,19 @@
     "eval/results-run2.json"
   ],
   "frozenSubset": "frozen-v1",
-  "committed": 20,
-  "correct": 18,
-  "accuracy": 0.9,
-  "scored": 30
+  "runs": [
+    {
+      "scored": 15,
+      "committed": 10,
+      "committedErrors": 1,
+      "sentToReview": 5
+    },
+    {
+      "scored": 15,
+      "committed": 10,
+      "committedErrors": 1,
+      "sentToReview": 5
+    }
+  ],
+  "worstCommittedErrors": 1
 }

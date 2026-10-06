@@ -492,16 +492,16 @@ Expected side effects to look for when it is run: fewer committed `gap`s (lower 
 review), and more `citation_not_verbatim` blocks because the citation window shown to the assessor is
 500 characters (R06/R08 above): the guards do not fix that truncation.
 
-**Regression gate.** [`scripts/eval-regression.ts`](scripts/eval-regression.ts) fails if the accuracy of
-*committed* verdicts on the frozen 16-item subset [`eval/frozen-subset.json`](eval/frozen-subset.json)
-(6 conformant, 6 gap, 4 insufficient; R10 forced in) falls more than 5 points below
-[`eval/baseline-frozen.json`](eval/baseline-frozen.json). The baseline is currently the **v1** result
-(both runs, 18/20 = 90 %); replace it with the v2 numbers after the first v2 run
-(`tsx scripts/eval-regression.ts --make-baseline eval/results-frozen.json`). The comparator is unit-tested
-in CI (`npm run test:unit`); the live check is `npm run eval:regression` and is **not** in public CI because
-it needs the corpus (not redistributable), the keys and the databases. Caution: ~10 committed items make a
-5-point threshold equivalent to "no extra error allowed", and temperature-0 output is only ~95–97 % stable
-between runs, so a failure should be re-run once before being treated as a regression.
+**Regression gate.** [`scripts/eval-regression.ts`](scripts/eval-regression.ts) counts *committed errors* (a
+verdict that was not sent to review and is wrong) on the frozen 16-item subset
+[`eval/frozen-subset.json`](eval/frozen-subset.json) (6 conformant, 6 gap, 4 insufficient; R10 forced in) and
+fails if a run has more than the baseline's worst run **+ 1**. It counts errors rather than percentage points:
+with ~10 committed items a 5-point threshold meant "no extra error allowed", and temperature-0 output flips about
+one item between identical runs. A run that commits nothing also fails (zero errors would be vacuous). The
+baseline [`eval/baseline-frozen.json`](eval/baseline-frozen.json) is currently the **v1** result (1 committed
+error per run, 10 committed, 5 to review); it is replaced by the v2 numbers after the v2 run. The comparator is
+unit-tested in CI (`npm run test:unit`); the live check is `npm run eval:regression` and is **not** in public CI
+because it needs the corpus (not redistributable), the keys and the databases.
 
 ## Changelog
 
