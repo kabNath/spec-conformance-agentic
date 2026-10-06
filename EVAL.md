@@ -456,8 +456,56 @@ to human review (`low_confidence`).
   (0.87 in the top tranche), not to the raw number. The v1 results above were produced with the
   old confidence and are reported as run; re-running the evaluation will give different gating figures.
 
+## v2 — citation guards (harness ready, **run pending**)
+
+> **Status: not run.** The v2 evaluation needs the live stack (Neo4j + Qdrant loaded with the TS 38.331
+> extract, OpenRouter keys, and a verifier model from another family than the assessor). It could not be
+> executed when this section was written, so **no v2 number exists yet** and none is reported here.
+> The v1 figures above stay the only measured results; this table is where v2 goes once it has been run.
+
+**What changed in the pipeline (v2), all in [`lib/graph/judge.ts`](lib/graph/judge.ts) and
+[`lib/citation-check.ts`](lib/citation-check.ts), shared by the app and `scripts/eval.ts`:**
+
+1. The assessor must return a `quote`. It is checked **verbatim** (whitespace-normalised, ≥ 4 words)
+   against the full ingested clause text; otherwise the verdict is forced to `insufficient_evidence`
+   with review reason `citation_not_verbatim`.
+2. A `gap` can only commit if the quote has a *shall / shall not / must* sentence covering ≥ 40 % (and ≥ 2)
+   of the requirement's salient terms; otherwise forced to `insufficient_evidence` (`gap_not_grounded`).
+   These thresholds were fixed a priori, not tuned on the gold set. The R10 failure above (a verbatim
+   quote about *RRCReconfiguration reception* attached to a requirement about 30-day storage) is covered by
+   an offline test, [`scripts/test-citation-check.ts`](scripts/test-citation-check.ts).
+3. A `gap` additionally needs the verifier (`OPENROUTER_VERIFIER_MODEL`) to be from **another model family**
+   than the assessor and to agree; unset or same family ⇒ not committed (`verifier_same_family`).
+4. `extractJSON` returns the first balanced JSON value (commit `deb282d`; was already in place for the
+   v1 write-up but after the two runs).
+
+| | v1 (as run, 2026-07-08, run 1) | v2 |
+|---|--:|--:|
+| Accuracy N=40 (errors as failures) | 27/40 = 67.5 % | *not run* |
+| Accuracy over verdict-producing items | 27/38 = 71.1 % | *not run* |
+| Committed accuracy / coverage | 21/24 = 87.5 % / 63.2 % | *not run* |
+| Silent errors (wrong and committed) | 3/40 (R06, R10, R17) | *not run* |
+| Committed false `gap` (R10) | 1 | *not run* — expected 0 by construction |
+| System errors (R21, R26, R31) | 2 (3 in run 2) | *not run* |
+
+Expected side effects to look for when it is run: fewer committed `gap`s (lower `gap` recall, more items in
+review), and more `citation_not_verbatim` blocks because the citation window shown to the assessor is
+500 characters (R06/R08 above): the guards do not fix that truncation.
+
+**Regression gate.** [`scripts/eval-regression.ts`](scripts/eval-regression.ts) fails if the accuracy of
+*committed* verdicts on the frozen 16-item subset [`eval/frozen-subset.json`](eval/frozen-subset.json)
+(6 conformant, 6 gap, 4 insufficient; R10 forced in) falls more than 5 points below
+[`eval/baseline-frozen.json`](eval/baseline-frozen.json). The baseline is currently the **v1** result
+(both runs, 18/20 = 90 %); replace it with the v2 numbers after the first v2 run
+(`tsx scripts/eval-regression.ts --make-baseline eval/results-frozen.json`). The comparator is unit-tested
+in CI (`npm run test:unit`); the live check is `npm run eval:regression` and is **not** in public CI because
+it needs the corpus (not redistributable), the keys and the databases. Caution: ~10 committed items make a
+5-point threshold equivalent to "no extra error allowed", and temperature-0 output is only ~95–97 % stable
+between runs, so a failure should be re-run once before being treated as a regression.
+
 ## Changelog
 
+- **v2 (pending)** — citation guards, other-family verifier, frozen-subset regression gate; **harness and unit tests done, evaluation not yet run** (see *v2*).
 - **v1.2 (2026-10-06)** — calibration re-done at item level with item-grouped 5-fold cross-validation;
   tranches need ≥ 10 distinct items (only the top one qualifies), others go to human review.
   Supersedes the v1.1 table.

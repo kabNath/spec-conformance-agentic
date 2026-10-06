@@ -1,0 +1,22 @@
+{
+  "name": "frozen-v1",
+  "rule": "per human_verdict class, ids ranked by sha256('frozen-v1:'+id); take 6 conformant, 6 gap, 4 insufficient; R10 (the committed false-gap safety case) is forced in. Never edit: changing it invalidates the baseline.",
+  "ids": [
+    "R05",
+    "R07",
+    "R09",
+    "R10",
+    "R11",
+    "R12",
+    "R14",
+    "R15",
+    "R16",
+    "R28",
+    "R29",
+    "R30",
+    "R31",
+    "R32",
+    "R33",
+    "R37"
+  ]
+}

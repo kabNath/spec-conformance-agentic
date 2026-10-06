@@ -1,0 +1,11 @@
+{
+  "source": [
+    "eval/results-run1.json",
+    "eval/results-run2.json"
+  ],
+  "frozenSubset": "frozen-v1",
+  "committed": 20,
+  "correct": 18,
+  "accuracy": 0.9,
+  "scored": 30
+}

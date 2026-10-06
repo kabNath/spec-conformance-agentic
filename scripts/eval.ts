@@ -358,7 +358,11 @@ async function main() {
     return;
   }
 
-  const items = gold.requirements.slice(0, limit === Infinity ? undefined : limit);
+  // --ids-file <json with {ids:[…]}>: run only a frozen subset (see eval/frozen-subset.json).
+  const idsArg = argv.indexOf("--ids-file");
+  const only: string[] | null = idsArg !== -1 ? JSON.parse(readFileSync(argv[idsArg + 1], "utf8")).ids : null;
+  const pool = only ? gold.requirements.filter((r) => only.includes(r.id)) : gold.requirements;
+  const items = pool.slice(0, limit === Infinity ? undefined : limit);
   console.log(`Running ${items.length} requirement(s) through retrieve → assess → verify …`);
   llmStats.reset();
   const t0 = Date.now();
@@ -395,6 +399,9 @@ async function main() {
     config: {
       spec: gold.meta.spec, version: gold.meta.version, release: gold.meta.release,
       model: process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4.6",
+      verifierModel: process.env.OPENROUTER_VERIFIER_MODEL ?? null, // null ⇒ same model as the assessor
+      citationGuards: true, // verbatim excerpt + grounded-gap + other-family verifier (lib/graph/judge.ts)
+      subset: only ? only.length : null,
       embeddingsModel: process.env.EMBEDDINGS_MODEL ?? "openai/text-embedding-3-small",
       reviewThreshold: REVIEW_THRESHOLD, orgId: ORG_ID, standardId: STANDARD_ID,
       corpusClauses: 266, goldSetSize: gold.requirements.length,
@@ -403,9 +410,10 @@ async function main() {
     cost,
     items: all,
   };
-  const outPath = new URL("../eval/results.json", import.meta.url);
+  const outArg = argv.indexOf("--out");
+  const outPath = outArg !== -1 ? argv[outArg + 1] : new URL("../eval/results.json", import.meta.url);
   writeFileSync(outPath, JSON.stringify(out, null, 2));
-  console.log(`\nResults written to eval/results.json`);
+  console.log(`\nResults written to ${outArg !== -1 ? outPath : "eval/results.json"}`);
 }
 
 main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
