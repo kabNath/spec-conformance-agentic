@@ -57,6 +57,16 @@ Persistence: Prisma/PostgreSQL (matrix rows), Cloudinary (blobs), Vidimus (attes
     npm run ingest -- <orgId> ts38331 "TS 38.331" 18.3.0 Rel-18 examples/ts38331-extrait.txt
     npm run dev                          # http://localhost:3000
 
+## Comportement attendu (expected behaviour)
+
+What you will see on a run, and why. None of it is a bug; the numbers come from [EVAL.md](EVAL.md) (v2, two passes over the 40-requirement gold set, 95 % Wilson intervals per pass; these requirements were already seen while the guards were designed, see its "Limites" section).
+
+- **Requirements are reformulated.** The extraction step rewrites each requirement of your document in the normative form: "applies" becomes "the terminal **shall** apply", and the trigger of a compound sentence ("When a session is opened, …") is repeated in every piece. The matrix therefore shows the reformulated sentence, not a quotation of your document; the source sentence is recorded in the row (`source.section`).
+- **Compound sentences are split.** One sentence with several actions becomes several rows (the demo document has 5 sentences and produces 11 rows). In the one demo document audited so far, nothing was merged, duplicated, invented or omitted; that is a single document, and how often the extraction does otherwise (including turning a non-requirement sentence into a row) is what `scripts/eval-extraction.ts` is meant to measure. It has not been run yet.
+- **"insufficient" appears as "needs review".** A row without enough evidence (no clause found, a guard that refused to commit, a verifier that disagrees) has the verdict *insufficient evidence* and is listed under **needs review**. The summary counts "needs review", not a separate "insufficient" figure, and a row in review shows its reason in full instead of a confidence percentage.
+- **A large share goes to human review.** On the gold set, **18/40 = 45.0 % [31–60]** and **17/40 = 42.5 % [29–58]** requirements were sent to review in the two passes (about 4 in 10), and **22/40 = 55.0 % [40–69]** and **23/40 = 57.5 % [42–71]** were committed. Most reviews come from retrieval finding no clause (8 per pass), then low confidence (3–4), then guards refusing a gap or a citation. This is the intended trade: among committed verdicts the observed accuracy was 21/22 = 95.5 % [78–99] and 22/23 = 95.7 % [79–99], at the price of coverage. These are small samples (the two passes score the same 40 items), so treat the intervals as wide.
+- **Confidence is calibrated only in the top band.** A committed row shows "calibrated confidence X% (interval) — observed accuracy on N items of this tranche"; below 10 reference items the confidence is not calibrated and the row goes to review.
+
 ## Deploy to AWS
 
 The infrastructure is real Terraform plus an OIDC deploy workflow. Deployment
