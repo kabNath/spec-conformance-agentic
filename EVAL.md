@@ -385,6 +385,8 @@ The forthcoming `extractJSON` fix removes the R26/R21/R31 error class outright.
 
 ## Confidence calibration
 
+> *Superseded for the sidecar by the recalculation on the v2 runs (see "Confidence calibration — recomputed on the v2 runs" below). The text and table in this section describe the calibration built from the v1 runs, kept as `eval/calibration-v1-runs.json`.*
+
 **Raw LLM confidence is not calibrated.** The assessor and verifier report numbers like 0.95
 that are not probabilities of being right — R10 above was a wrong `gap` asserted at 0.95 and
 endorsed by the verifier at 0.92. The sidecar therefore no longer reports a "confidence" derived
@@ -456,52 +458,185 @@ to human review (`low_confidence`).
   (0.87 in the top tranche), not to the raw number. The v1 results above were produced with the
   old confidence and are reported as run; re-running the evaluation will give different gating figures.
 
-## v2 — citation guards (harness ready, **run pending**)
+## v2 — citation guards, verifier-confirmed gaps (**measured**, 2026-10-06)
 
-> **Status: not run.** The v2 evaluation needs the live stack (Neo4j + Qdrant loaded with the TS 38.331
-> extract, OpenRouter keys, and a verifier model from another family than the assessor). It could not be
-> executed when this section was written, so **no v2 number exists yet** and none is reported here.
-> The v1 figures above stay the only measured results; this table is where v2 goes once it has been run.
+Two complete passes over the 40 gold items with `GAP_GUARD=verifier`. Everything below is computed from the committed, sanitised result
+files [`eval/results-v2-gapguard-1.public.json`](eval/results-v2-gapguard-1.public.json) and
+[`-2`](eval/results-v2-gapguard-2.public.json) by [`scripts/eval-compare.ts`](scripts/eval-compare.ts) and
+[`scripts/eval-gap-report.ts`](scripts/eval-gap-report.ts). **The v1 sections above are unchanged**; v1 figures quoted here are
+recomputed from `eval/results-run1.json` / `-run2.json` with the same code (they reproduce the v1 numbers: 27/40, 24/38 committed, 3 silent errors).
 
-**What changed in the pipeline (v2), all in [`lib/graph/judge.ts`](lib/graph/judge.ts) and
-[`lib/citation-check.ts`](lib/citation-check.ts), shared by the app and `scripts/eval.ts`:**
+**Setup.** Assessor `anthropic/claude-sonnet-4.6`, temperature 0 (unchanged); verifier `google/gemini-3.8-flash`, temperature 0, pinned with
+`{"only":["google-vertex"],"allow_fallbacks":false,"data_collection":"deny"}` (every resolved verifier call reports provider "Google");
+pre-registration [`eval/PREREGISTRATION-gap-guard.md`](eval/PREREGISTRATION-gap-guard.md) committed at **`ad3175f1ffef683855172fdde73093373483004e`**
+before the first paid call of this evaluation. Cost: 0.5518 USD + 0.5684 USD (OpenRouter generation records; one record unresolved).
+The raw result files contain specification text and model prose, so they are **not** committed (git-ignored); the committed `.public.json`
+files keep ids, verdicts, clause ids, flags, reason codes, confidences and SHA-256 of the quotes (checked for ≥ 9 consecutive spec words by
+[`scripts/check-no-spec-text.ts`](scripts/check-no-spec-text.ts)).
 
-1. The assessor must return a `quote`. It is checked **verbatim** (whitespace-normalised, ≥ 4 words)
-   against the full ingested clause text; otherwise the verdict is forced to `insufficient_evidence`
-   with review reason `citation_not_verbatim`.
-2. A `gap` can only commit if the quote has a *shall / shall not / must* sentence covering ≥ 40 % (and ≥ 2)
-   of the requirement's salient terms; otherwise forced to `insufficient_evidence` (`gap_not_grounded`).
-   These thresholds were fixed a priori, not tuned on the gold set. The R10 failure above (a verbatim
-   quote about *RRCReconfiguration reception* attached to a requirement about 30-day storage) is covered by
-   an offline test, [`scripts/test-citation-check.ts`](scripts/test-citation-check.ts).
-3. A `gap` additionally needs the verifier (`OPENROUTER_VERIFIER_MODEL`) to be from **another model family**
-   than the assessor and to agree; unset or same family ⇒ not committed (`verifier_same_family`).
-4. `extractJSON` returns the first balanced JSON value (commit `deb282d`; was already in place for the
-   v1 write-up but after the two runs).
+**v2 is a bundle of changes, not a single one** (no ablation was run, so no difference below can be attributed to one of them):
+(1) the assessor prompt asks for a verbatim `quote`; (2) the citation window is the 4000 characters of the clause most relevant to the requirement
+(v1: first 500 characters); (3) deterministic verbatim check of the quote; (4) `gap` verdicts are confirmed by two fixed questions put to the verifier
+(same subject? contradiction?), with NOTEs and bullet-extended passage; (5) the adversarial verifier is now Gemini instead of the assessor's own model;
+(6) the `extractJSON` fix that was committed after the v1 runs is included.
 
-| | v1 (as run, 2026-07-08, run 1) | v2 |
-|---|--:|--:|
-| Accuracy N=40 (errors as failures) | 27/40 = 67.5 % | *not run* |
-| Accuracy over verdict-producing items | 27/38 = 71.1 % | *not run* |
-| Committed accuracy / coverage | 21/24 = 87.5 % / 63.2 % | *not run* |
-| Silent errors (wrong and committed) | 3/40 (R06, R10, R17) | *not run* |
-| Committed false `gap` (R10) | 1 | *not run* — expected 0 by construction |
-| System errors (R21, R26, R31) | 2 (3 in run 2) | *not run* |
+### Headline, v1 vs v2
 
-Expected side effects to look for when it is run: fewer committed `gap`s (lower `gap` recall, more items in
-review), and more `citation_not_verbatim` blocks because the citation window shown to the assessor is
-500 characters (R06/R08 above): the guards do not fix that truncation.
+95 % Wilson intervals are per run (n = 40 or fewer), so wide; the two runs score the same items, so they are not independent samples. "Mean" is the
+mean of the two point estimates. Retrieval here uses the harness definition (exact, family or correct abstention); the v1 text above reports 27/38 because
+it also counted clauses on the gold clause's cross-reference chain, which the harness does not.
 
-**Regression gate.** [`scripts/eval-regression.ts`](scripts/eval-regression.ts) counts *committed errors* (a
-verdict that was not sent to review and is wrong) on the frozen 16-item subset
-[`eval/frozen-subset.json`](eval/frozen-subset.json) (6 conformant, 6 gap, 4 insufficient; R10 forced in) and
-fails if a run has more than the baseline's worst run **+ 1**. It counts errors rather than percentage points:
-with ~10 committed items a 5-point threshold meant "no extra error allowed", and temperature-0 output flips about
-one item between identical runs. A run that commits nothing also fails (zero errors would be vacuous). The
-baseline [`eval/baseline-frozen.json`](eval/baseline-frozen.json) is currently the **v1** result (1 committed
-error per run, 10 committed, 5 to review); it is replaced by the v2 numbers after the v2 run. The comparator is
-unit-tested in CI (`npm run test:unit`); the live check is `npm run eval:regression` and is **not** in public CI
-because it needs the corpus (not redistributable), the keys and the databases.
+| metric (95 % Wilson interval per run) | v1 run 1 | v1 run 2 | v1 mean | v2 run 1 | v2 run 2 | v2 mean |
+|---|---|---|---|---|---|---|
+| Accuracy, N=40 (system errors count as failures) | 27/40 = 67.5 % [52–80] | 25/40 = 62.5 % [47–76] | 65.0 % | 26/40 = 65.0 % [50–78] | 27/40 = 67.5 % [52–80] | 66.3 % |
+| Accuracy over verdict-producing items | 27/38 = 71.1 % [55–83] | 25/37 = 67.6 % [51–80] | 69.3 % | 26/40 = 65.0 % [50–78] | 27/40 = 67.5 % [52–80] | 66.3 % |
+| Coverage (committed / scored) | 24/38 = 63.2 % [47–77] | 22/37 = 59.5 % [43–74] | 61.3 % | 22/40 = 55.0 % [40–69] | 23/40 = 57.5 % [42–71] | 56.3 % |
+| Committed accuracy | 21/24 = 87.5 % [69–96] | 19/22 = 86.4 % [67–95] | 86.9 % | 21/22 = 95.5 % [78–99] | 22/23 = 95.7 % [79–99] | 95.6 % |
+| Silent errors (committed and wrong), count | 3 | 3 | 3.0 | 1 | 1 | 1.0 |
+| Items sent to human review | 14 | 15 | 14.5 | 18 | 17 | 17.5 |
+| System errors | 2 | 3 | 2.5 | 0 | 0 | 0.0 |
+| Retrieval correct (clause found or correct abstention) | 26/38 = 68.4 % [53–81] | 25/37 = 67.6 % [51–80] | — | 24/40 = 60.0 % [45–74] | 25/40 = 62.5 % [47–76] | — |
+| Verdict accuracy given retrieval correct | 24/26 = 92.3 % [76–98] | 23/25 = 92.0 % [75–98] | — | 19/24 = 79.2 % [60–91] | 20/25 = 80.0 % [61–91] | — |
+| Verdict accuracy given retrieval wrong | 3/12 = 25.0 % [9–53] | 2/12 = 16.7 % [5–45] | — | 7/16 = 43.8 % [23–67] | 7/15 = 46.7 % [25–70] | — |
+
+
+Silent errors (committed and wrong), by run:
+  v1 run 1: R06 (conformant→insufficient), R10 (insufficient→gap), R17 (gap→insufficient)
+  v1 run 2: R06 (conformant→insufficient), R10 (insufficient→gap), R17 (gap→insufficient)
+  v2 run 1: R25 (gap→insufficient)
+  v2 run 2: R11 (conformant→insufficient)
+
+What the table says, without spin:
+- **Verdict accuracy did not improve** (N=40 mean 66.3 % vs 65.0 % — the intervals overlap almost entirely).
+- **Committed accuracy is higher** (95.6 % vs 86.9 % mean; per run 21/22 [78–99] and 22/23 [79–99] vs 21/24 [69–96] and 19/22 [67–95]; the intervals overlap), with
+  **1 silent error per run instead of 3**; **coverage is lower** (56.3 % vs 61.3 %: more items go to human review, 17.5 vs 14.5 on average).
+- **System errors: 0 in both passes** (v1: 2 and 3). R21, R26 and R31, the three v1 system errors, all produced a verdict in both v2 passes.
+- **Conformant recall fell** (see below); retrieval-correct is 60.0 % / 62.5 % vs 68.4 % / 67.6 %.
+
+### Per-class precision (P) and recall (R), counts and Wilson 95 % intervals
+
+| class | support (v1 run 1, run 2 / v2 run 1, run 2) | v1 run 1 | v1 run 2 | v2 run 1 | v2 run 2 |
+|---|---|---|---|---|---|
+| conformant | 17, 17 / 17, 17 | P 15/15 = 100.0 % [80–100]<br>R 15/17 = 88.2 % [66–97] | P 14/14 = 100.0 % [78–100]<br>R 14/17 = 82.4 % [59–94] | P 11/11 = 100.0 % [74–100]<br>R 11/17 = 64.7 % [41–83] | P 11/11 = 100.0 % [74–100]<br>R 11/17 = 64.7 % [41–83] |
+| gap | 16, 15 / 16, 16 | P 8/9 = 88.9 % [57–98]<br>R 8/16 = 50.0 % [28–72] | P 7/8 = 87.5 % [53–98]<br>R 7/15 = 46.7 % [25–70] | P 8/8 = 100.0 % [68–100]<br>R 8/16 = 50.0 % [28–72] | P 9/9 = 100.0 % [70–100]<br>R 9/16 = 56.3 % [33–77] |
+| insufficient | 5, 5 / 7, 7 | P 4/14 = 28.6 % [12–55]<br>R 4/5 = 80.0 % [38–96] | P 4/15 = 26.7 % [11–52]<br>R 4/5 = 80.0 % [38–96] | P 7/21 = 33.3 % [17–55]<br>R 7/7 = 100.0 % [65–100] | P 7/20 = 35.0 % [18–57]<br>R 7/7 = 100.0 % [65–100] |
+
+
+### Confusion matrices
+
+  v1 run 1: conformant: [15, 0, 2]  gap: [0, 8, 8]  insufficient: [0, 1, 4]
+  v1 run 2: conformant: [14, 0, 3]  gap: [0, 7, 8]  insufficient: [0, 1, 4]
+  v2 run 1: conformant: [11, 0, 6]  gap: [0, 8, 8]  insufficient: [0, 0, 7]
+  v2 run 2: conformant: [11, 0, 6]  gap: [0, 9, 7]  insufficient: [0, 0, 7]
+
+
+### Agreement between the two runs
+
+
+  v1: verdict, ERROR as its own state, all items 38/40 = 95.0 % [83–99]; verdict over items scored in both 36/37 = 97.3 % [86–100]; cited clause (items citing in both) 27/28 = 96.4 % [82–99]
+  v2: verdict, ERROR as its own state, all items 39/40 = 97.5 % [87–100]; verdict over items scored in both 39/40 = 97.5 % [87–100]; cited clause (items citing in both) 31/32 = 96.9 % [84–99]
+
+
+### Pre-registered criteria (commit `ad3175f1`)
+
+| criterion | outcome |
+|---|---|
+| **Primary — zero false gaps committed over the 40 items, in both passes** | **MET.** 0 false gaps among the 17 committed gaps (8 + 9); the 95 % Wilson upper bound on the false-gap share of committed gaps is 18 % (0/17 = 0.0 % [0–18]). |
+| **Secondary — number of true gaps committed (counts)** | pass 1: **8** of 16 gold gaps; pass 2: **9** of 16. DEV 3 and 3 (of 6); TEST 5 and 6 (of 10). |
+
+Derived rates, each with its interval (pooling the two passes treats them as independent, which they are not: read pooled intervals as optimistic):
+
+| quantity | pass 1 | pass 2 | pooled |
+|---|---|---|---|
+| Gap precision (true gaps / committed gaps) | 8/8 = 100.0 % [68–100] | 9/9 = 100.0 % [70–100] | 17/17 = 100.0 % [82–100] |
+| Gap recall (true gaps / gold gaps) | 8/16 = 50.0 % [28–72] | 9/16 = 56.2 % [33–77] | 17/32 = 53.1 % [36–69] |
+| Raw gaps of the assessor that were true gaps and were committed | 8/8 = 100.0 % [68–100] | 9/9 = 100.0 % [70–100] | 17/17 = 100.0 % [82–100] |
+| Raw gaps of the assessor that were false and were blocked by the guard | 4/4 = 100.0 % [51–100] | 4/4 = 100.0 % [51–100] | 8/8 = 100.0 % [68–100] |
+| Coverage (committed / scored) | 22/40 = 55.0 % [40–69] | 23/40 = 57.5 % [42–71] | 45/80 = 56.2 % [45–67] |
+
+By group (DEV = the 16 items of `eval/frozen-subset.json`, already seen and used to diagnose the previous rule; TEST = the other 24):
+
+| group | pass | coverage | true gaps committed | gap recall | committed gaps | false gaps committed |
+|---|---|---|---|---|---|---|
+| DEV (16 items already seen) | 1 | 5/16 = 31.2 % [14–56] | 3 of 6 gold gaps | 3/6 = 50.0 % [19–81] | 3 | 0 |
+| DEV (16 items already seen) | 2 | 6/16 = 37.5 % [18–61] | 3 of 6 gold gaps | 3/6 = 50.0 % [19–81] | 3 | 0 |
+| TEST (24 other items) | 1 | 17/24 = 70.8 % [51–85] | 5 of 10 gold gaps | 5/10 = 50.0 % [24–76] | 5 | 0 |
+| TEST (24 other items) | 2 | 17/24 = 70.8 % [51–85] | 6 of 10 gold gaps | 6/10 = 60.0 % [31–83] | 6 | 0 |
+
+**How much evidence the primary criterion really gives.** The guard only has something to block when the assessor says `gap` on an item whose
+reference is not `gap`. That happened on **4 items per pass: R10, R14, R30 (DEV) and R20 (TEST)**; all four were blocked in both passes (R10, R30, R20 by
+question (a) "same subject", R14 by question (b), with the clause's 9 NOTEs given to the verifier; whether the NOTEs or the "optionally" wording decided it cannot be told from the reply). In TEST there is a single such item (R20). "Zero false gaps"
+therefore rests on 4 distinct false raw gaps, 3 of which belong to the group that motivated the rule.
+
+### Missed gold gaps come from retrieval and the assessor, not from the guard
+
+Every gold gap that was not committed as a gap had an assessor verdict of `insufficient` **before** any guard ran (`raw_verdict` ≠ `gap`); the guard blocked no
+true gap in either pass. Reasons (pass 1; pass 2 is the same except R25):
+
+| item | clause retrieved vs gold clause | why it was not a committed gap |
+|---|---|---|
+| R09, R13, R33, R37, R39, R40 | none vs 5.3.5.1, 5.3.7.2, 5.2.2.3.1, 5.3.8.2, 5.6.1.4, 5.6.1.4 | retrieval found no clause (`no_clause_found`) |
+| R25 (pass 1 only) | 5.5.5.2 vs 5.5.5.1 | wrong clause retrieved; committed as `insufficient` (silent error). In pass 2 the right clause was found and the gap committed |
+| R17 | 5.5.4.1 = gold | right clause, but the assessor answered `insufficient` with confidence 0.55 → review (same item as v1) |
+
+So 7 of 8 misses in pass 1 (6 of 7 in pass 2) are retrieval failures; the remaining one (R17) is the assessor's judgement. Gap recall is therefore bounded by retrieval
+(and by the assessor), which this change does not touch.
+
+### What got worse: conformant items
+
+Conformant recall dropped from 88.2 % / 82.4 % (v1) to 64.7 % / 64.7 % (11 of 17 in both v2 passes). The six conformant items not answered `conformant` are the same in both passes:
+
+| item | assessor | outcome in v2 |
+|---|---|---|
+| R28 | `conformant`, confidence 0.99 | quote not verbatim → forced to `insufficient`, review (`citation_not_verbatim`) |
+| R14 | `gap` (0.92) | gap blocked by question (b) → `insufficient`, review |
+| R11 | `insufficient` | pass 1: low confidence → review; pass 2: **committed** as `insufficient` (silent error) |
+| R16, R32 | `insufficient`, low confidence | review (`low_confidence`); R32 also retrieved the wrong clause |
+| R12 | no clause retrieved | review (`no_clause_found`) |
+
+Only R28 and R14 are direct effects of the new guards; the other four are assessor or retrieval behaviour that differs from v1 (in v1 these items were answered
+`conformant`; v1 missed R06, R08 and in run 2 R02). Because v2 changed several things at once, **this data cannot say which change caused them**.
+
+### Regression baseline
+
+[`eval/baseline-frozen.json`](eval/baseline-frozen.json) now holds the v2 numbers on the frozen 16-item subset: committed errors 0 (pass 1) and 1 (pass 2; R11), so the
+worst run is **1** and the gate fails above **2** (worst run + 1), as before. It does not gate coverage, which on this subset fell from 10 committed items per run (v1)
+to 5 and 6 (v2). The live check is `npm run eval:regression` (it sets `GAP_GUARD=verifier`, the Gemini verifier and the provider pin).
+
+### Spec text in committed files (audit finding)
+
+`scripts/check-no-spec-text.ts` found runs of ≥ 9 consecutive spec words in two files **committed before this change**: `eval/results-run1.json` and `-run2.json`
+(model notes `gap_note` / `verifier_note` quote clauses) and `eval/gold-set.json` (requirement and justification texts). They are untouched here. The new `.public.json` files and
+this document are clean. Rewriting history or replacing those files is a separate decision.
+
+
+### Confidence calibration — recomputed on the v2 runs
+
+[`vidimus-svc/calibrate.py`](vidimus-svc/calibrate.py) was re-run on the two v2 passes (same method as above: one unit per (item, tranche), item-grouped 5-fold
+cross-validation, Wilson 95 %, minimum 10 items per tranche). The table built from the v1 runs is kept as
+[`eval/calibration-v1-runs.json`](eval/calibration-v1-runs.json) (and reproduces exactly: `cal-ad31e4132318`); the sidecar now loads
+[`eval/calibration.json`](eval/calibration.json), version **`cal-102be0bdb9d1`**.
+
+| | v1 runs (`cal-ad31e4132318`) | v2 runs (`cal-102be0bdb9d1`) |
+|---|---|---|
+| items with a scored prediction / predictions / system errors excluded | 38 / 75 / 5 | 40 / 80 / 0 |
+| ECE of the raw confidence | 0.145 | 0.132 |
+| ECE of the calibrated confidence (5-fold CV by item) | 0.023 | 0.003 |
+| coverage of the calibration (predictions with a calibrated tranche) | 61.3 % (46/75; the other 29 go to human review) | 65.0 % (52/80; the other 28 go to human review) |
+| **top tranche [0.8, 1.0]**: items / mean raw confidence | 24 / 0.954 | 26 / 0.983 |
+| **top tranche**: observed accuracy [Wilson 95 %] | 87.5 % [69.0–95.7] | 94.2 % [78.4–98.7] |
+| other non-empty tranches (items; none reaches 10) | 9, 3, 3 | 8, 4, 2 |
+
+**Did the top tranche change? Yes, moderately.** Its observed accuracy rose from 87.5 % to 94.2 % and the gap between mean raw
+confidence and accuracy shrank (from 7.9 to 4.1 points), but the two intervals overlap
+widely, so this is not evidence of a real difference. For the same input the sidecar used to answer 0.875 [0.690, 0.957] and now answers 0.942 [0.784, 0.987].
+
+How to read it:
+- What is calibrated is the **guarded pipeline's final verdict**: cases where the assessor was confidently wrong and a guard forced `insufficient` (R10, R30…) now count as correct, which
+  mechanically raises the top tranche. It is not an improvement of the LLM's own confidence.
+- The cross-validated ECE (0.003) covers only the top tranche (it is the only calibrated one): it says that tranche's accuracy is stable across folds, nothing about the others.
+  All three other non-empty tranches still have fewer than 10 items, so 28 of 80 predictions are answered `calibrated: false` and routed to human review.
+- The same 40 items were used to design the guards and to calibrate; the intervals are item-level but ignore that dependence.
 
 ## Limites de cette évaluation (limits of this evaluation)
 
@@ -519,11 +654,16 @@ This section is about the evaluation of the `GAP_GUARD=verifier` rule (pre-regis
 - Two passes of the same 40 items at temperature 0 measure stability, not independent samples; one assessor model, one verifier
   model, one spec extract.
 
+- **v2 is a bundle of changes** (assessor prompt, citation window, deterministic guard, verifier-confirmed gaps, verifier model, JSON fix); no ablation was run, so the drop in conformant recall
+  and the gain in committed accuracy cannot be attributed to a single change.
+- The primary criterion ("zero false gaps") is exercised by **4 distinct false raw gaps** (R10, R14, R30 in DEV; R20 in TEST); it is a weak test of precision, as its interval shows (upper bound 18 %).
+- Two passes at temperature 0 of the same 40 items; every interval treats runs as independent and is therefore optimistic.
+
 Nothing was tuned on the TEST group: prompts, caps and criteria were committed before the first paid call.
 
 ## Changelog
 
-- **v2 (pending)** — citation guards, other-family verifier, frozen-subset regression gate; **harness and unit tests done, evaluation not yet run** (see *v2*).
+- **v2 (2026-10-06)** — citation guards, verifier-confirmed gaps (`GAP_GUARD=verifier`), other-family verifier, sanitised results, v2 regression baseline and recalibrated confidence (`cal-102be0bdb9d1`). Measured on two full passes; pre-registration `ad3175f1`. See *v2*. v1 sections unchanged.
 - **v1.2 (2026-10-06)** — calibration re-done at item level with item-grouped 5-fold cross-validation;
   tranches need ≥ 10 distinct items (only the top one qualifies), others go to human review.
   Supersedes the v1.1 table.

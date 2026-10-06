@@ -72,14 +72,14 @@ function main() {
   console.log(row("Items sent to human review", (x) => String(x.toReview), (ms) => mean(ms.map((x) => x.toReview)).toFixed(1)));
   console.log(row("System errors", (x) => String(x.errored.length), (ms) => mean(ms.map((x) => x.errored.length)).toFixed(1)));
   console.log(row("Retrieval correct (clause found or correct abstention)", (x) => frac(x.retOk, x.scored)));
-  console.log(row("Verdict accuracy | retrieval correct", (x) => frac(x.vGivenOk, x.retOk)));
-  console.log(row("Verdict accuracy | retrieval wrong", (x) => frac(x.vGivenBad, x.retBad)));
+  console.log(row("Verdict accuracy given retrieval correct", (x) => frac(x.vGivenOk, x.retOk)));
+  console.log(row("Verdict accuracy given retrieval wrong", (x) => frac(x.vGivenBad, x.retBad)));
   console.log("\nSilent errors, by run:");
   [["v1", M1], ["v2", M2]].forEach(([l, ms]) => (ms as typeof M1).forEach((x, i) => console.log(`  ${l} run ${i + 1}: ${x.silent.join(", ") || "none"}`)));
-  console.log("\nPer-class precision / recall (mean of the two runs in parentheses is the mean of the point estimates):");
-  console.log("| class | support (v1 / v2) | v1 run 1 P / R | v1 run 2 P / R | v2 run 1 P / R | v2 run 2 P / R |\n|---|---|---|---|---|---|");
-  V.forEach((c, k) => console.log(`| ${c} | ${M1[0].perClass[k].support} & ${M1[1].perClass[k].support} / ${M2[0].perClass[k].support} & ${M2[1].perClass[k].support} | ` +
-    [...M1, ...M2].map((x) => { const p = x.perClass[k]; return `${pc(p.precision)} (${p.tp}/${p.tp + p.fp}) / ${pc(p.recall)} (${p.tp}/${p.tp + p.fn})`; }).join(" | ") + " |"));
+  console.log("\nPer-class precision / recall, counts and 95 % Wilson interval (never a bare percentage):");
+  console.log("| class | support (v1 run 1, run 2 / v2 run 1, run 2) | v1 run 1 | v1 run 2 | v2 run 1 | v2 run 2 |\n|---|---|---|---|---|---|");
+  V.forEach((c, k) => console.log(`| ${c} | ${M1[0].perClass[k].support}, ${M1[1].perClass[k].support} / ${M2[0].perClass[k].support}, ${M2[1].perClass[k].support} | ` +
+    [...M1, ...M2].map((x) => { const p = x.perClass[k]; return `P ${frac(p.tp, p.tp + p.fp)}<br>R ${frac(p.tp, p.tp + p.fn)}`; }).join(" | ") + " |"));
   console.log("\nConfusion matrices (rows = human reference, cols = predicted: conformant, gap, insufficient):");
   [["v1", M1], ["v2", M2]].forEach(([l, ms]) => (ms as typeof M1).forEach((x, i) => console.log(`  ${l} run ${i + 1}: ` + V.map((g) => `${g}: [${V.map((p) => x.conf[g][p]).join(", ")}]`).join("  "))));
   console.log("\nAgreement between the two runs:");
