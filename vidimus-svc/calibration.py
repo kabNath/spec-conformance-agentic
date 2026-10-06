@@ -81,7 +81,7 @@ def collect_rows(gold: dict, runs: list[dict]):
     rows, errored = [], 0
     for run in runs:
         for it in run["items"]:
-            if it.get("error") or it["id"] not in ref:
+            if it.get("error") or it.get("system_error") or it["id"] not in ref:
                 errored += 1  # system error: no real verdict or confidence to calibrate
                 continue
             rows.append({

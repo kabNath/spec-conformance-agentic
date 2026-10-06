@@ -7,3 +7,4 @@ vidimus-svc/Dockerfile*
 eval/results*.json
 !eval/results-run1.json
 !eval/results-run2.json
+!eval/results-v2-gapguard-*.public.json

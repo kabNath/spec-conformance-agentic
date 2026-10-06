@@ -1,10 +1,12 @@
 """Build eval/calibration.json from the gold set and the eval runs.
 
-    python vidimus-svc/calibrate.py            # from the repo root
+    python vidimus-svc/calibrate.py                                  # v2 runs (default)
+    python vidimus-svc/calibrate.py --runs results-run1.json results-run2.json --out calibration-v1-runs.json
 
-Reads eval/gold-set.json, eval/results-run1.json, eval/results-run2.json and
-prints the reliability table (accuracy per confidence tranche, Wilson 95%, ECE).
+Reads eval/gold-set.json and the given runs (default: the sanitised v2 results, which are the committed ones)
+and prints the reliability table (accuracy per confidence tranche, Wilson 95%, ECE).
 """
+import argparse
 import hashlib
 import json
 import sys
@@ -14,16 +16,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import calibration as cal  # noqa: E402
 
 EVAL = Path(__file__).resolve().parent.parent / "eval"
-RUNS = ["results-run1.json", "results-run2.json"]
+RUNS = ["results-v2-gapguard-1.public.json", "results-v2-gapguard-2.public.json"]
 
 
 def main() -> int:
-    paths = [EVAL / "gold-set.json", *(EVAL / r for r in RUNS)]
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--runs", nargs="+", default=RUNS, help="result files inside eval/")
+    ap.add_argument("--out", default="calibration.json", help="output file inside eval/")
+    args = ap.parse_args()
+    paths = [EVAL / "gold-set.json", *(EVAL / r for r in args.runs)]
     gold = json.loads(paths[0].read_text())
     runs = [json.loads(p.read_text()) for p in paths[1:]]
     inputs = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
     c = cal.build_calibration(gold, runs, inputs)
-    out = EVAL / "calibration.json"
+    out = EVAL / args.out
     out.write_text(json.dumps(c, indent=2, ensure_ascii=False) + "\n")
 
     cv = c["cross_validation"]

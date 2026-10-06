@@ -195,11 +195,26 @@ def test_missing_calibration_file_is_uncalibrated():
     _verify_signature(d, main)
 
 
+def test_sanitised_results_use_the_system_error_flag():
+    """Committed (sanitised) results carry `system_error: true` instead of the raw error text."""
+    gold, runs = _synthetic()
+    for run in runs:
+        for it in run["items"]:
+            if it.pop("error", None):
+                it["system_error"] = True
+    c = cal.build_calibration(gold, runs)
+    assert c["n_errored_excluded"] == 1 and c["n_predictions"] == 38
+
+
 def test_committed_calibration_matches_eval_inputs():
-    """eval/calibration.json must be reproducible from the committed eval inputs."""
+    """eval/calibration.json must be reproducible from the committed eval inputs it names."""
     committed = json.loads((EVAL / "calibration.json").read_text())
-    gold = json.loads((EVAL / "gold-set.json").read_text())
-    runs = [json.loads((EVAL / f"results-run{i}.json").read_text()) for i in (1, 2)]
+    names = list(committed["inputs"])  # gold set first, then the runs, as recorded by calibrate.py
+    gold = json.loads((EVAL / names[0]).read_text())
+    runs = [json.loads((EVAL / n).read_text()) for n in names[1:]]
+    for n in names:  # the recorded hashes must match the files in the repo
+        import hashlib
+        assert hashlib.sha256((EVAL / n).read_bytes()).hexdigest() == committed["inputs"][n], n
     rebuilt = cal.build_calibration(gold, runs)
     assert committed["version"] == rebuilt["version"]
     assert committed["tranches"] == rebuilt["tranches"]
