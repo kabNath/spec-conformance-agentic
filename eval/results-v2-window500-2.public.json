@@ -1,0 +1,1383 @@
+{
+  "_note": "Sanitised from the raw results file: no specification text, no model prose. *_sha256 = SHA-256 of the whitespace-normalised UTF-8 text.",
+  "generatedAt": "2026-10-06T13:17:28.468Z",
+  "config": {
+    "spec": "TS 38.331",
+    "version": "19.3.0",
+    "release": "Rel-19",
+    "model": "anthropic/claude-sonnet-4.6",
+    "verifierModel": "google/gemini-3.8-flash",
+    "gapGuard": "verifier",
+    "verifierProvider": "google-vertex",
+    "citationWindowChars": 500,
+    "citationGuards": true,
+    "subset": 17,
+    "embeddingsModel": "openai/text-embedding-3-small",
+    "reviewThreshold": 0.75,
+    "standardId": "ts38331",
+    "corpusClauses": 266,
+    "goldSetSize": 40
+  },
+  "summary": {
+    "n": 17,
+    "correct": 12,
+    "accuracy": 0.7058823529411765,
+    "confusion": {
+      "conformant": {
+        "conformant": 12,
+        "gap": 0,
+        "insufficient": 5
+      },
+      "gap": {
+        "conformant": 0,
+        "gap": 0,
+        "insufficient": 0
+      },
+      "insufficient": {
+        "conformant": 0,
+        "gap": 0,
+        "insufficient": 0
+      }
+    },
+    "perClass": {
+      "conformant": {
+        "precision": 1,
+        "recall": 0.7058823529411765,
+        "f1": 0.8275862068965517,
+        "support": 17
+      },
+      "gap": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "support": 0
+      },
+      "insufficient": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "support": 0
+      }
+    },
+    "macroF1": 0.27586206896551724,
+    "weightedF1": 0.8275862068965517,
+    "byDifficulty": {
+      "easy": {
+        "correct": 4,
+        "total": 6
+      },
+      "medium": {
+        "correct": 5,
+        "total": 7
+      },
+      "hard": {
+        "correct": 3,
+        "total": 4
+      }
+    },
+    "byClass": {
+      "conformant": {
+        "correct": 12,
+        "total": 17
+      }
+    },
+    "clauseOutcomes": {
+      "exact": 14,
+      "wrong_clause": 2,
+      "no_citation": 1
+    },
+    "retrieval": {
+      "correct": 14,
+      "verdictGivenCorrect": 11,
+      "verdictGivenWrong": 1,
+      "retBad": 3
+    },
+    "gated": {
+      "coverage": 11,
+      "committedCorrect": 11,
+      "committedAccuracy": 1,
+      "abstained": 6,
+      "suppressedErrors": 5,
+      "withheldCorrect": 1,
+      "silentErrors": 0
+    },
+    "scored": 17,
+    "errored": 0,
+    "elapsedMs": 231181
+  },
+  "cost": {
+    "calls": 92,
+    "inputTokens": 35148,
+    "outputTokens": 8138,
+    "costUsd": 0.228
+  },
+  "generations": [
+    {
+      "item": "R01",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000786,
+      "tokensIn": 150,
+      "tokensOut": 12
+    },
+    {
+      "item": "R01",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000864,
+      "tokensIn": 162,
+      "tokensOut": 12
+    },
+    {
+      "item": "R01",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000864,
+      "tokensIn": 162,
+      "tokensOut": 12
+    },
+    {
+      "item": "R01",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000864,
+      "tokensIn": 162,
+      "tokensOut": 12
+    },
+    {
+      "item": "R01",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002085,
+      "tokensIn": 475,
+      "tokensOut": 12
+    },
+    {
+      "item": "R01",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001929,
+      "tokensIn": 319,
+      "tokensOut": 56
+    },
+    {
+      "item": "R01",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00110325,
+      "tokensIn": 271,
+      "tokensOut": 162
+    },
+    {
+      "item": "R02",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000786,
+      "tokensIn": 145,
+      "tokensOut": 13
+    },
+    {
+      "item": "R02",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001482,
+      "tokensIn": 324,
+      "tokensOut": 13
+    },
+    {
+      "item": "R02",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00213,
+      "tokensIn": 240,
+      "tokensOut": 101
+    },
+    {
+      "item": "R02",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.001308,
+      "tokensIn": 154,
+      "tokensOut": 169
+    },
+    {
+      "item": "R04",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000828,
+      "tokensIn": 129,
+      "tokensOut": 13
+    },
+    {
+      "item": "R04",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001944,
+      "tokensIn": 438,
+      "tokensOut": 13
+    },
+    {
+      "item": "R04",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.004842,
+      "tokensIn": 456,
+      "tokensOut": 154
+    },
+    {
+      "item": "R04",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.005592,
+      "tokensIn": 456,
+      "tokensOut": 185
+    },
+    {
+      "item": "R04",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002307,
+      "tokensIn": 468,
+      "tokensOut": 12
+    },
+    {
+      "item": "R04",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002163,
+      "tokensIn": 306,
+      "tokensOut": 38
+    },
+    {
+      "item": "R04",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.001092,
+      "tokensIn": 244,
+      "tokensOut": 105
+    },
+    {
+      "item": "R06",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000741,
+      "tokensIn": 135,
+      "tokensOut": 16
+    },
+    {
+      "item": "R06",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00234,
+      "tokensIn": 470,
+      "tokensOut": 13
+    },
+    {
+      "item": "R06",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00207,
+      "tokensIn": 461,
+      "tokensOut": 13
+    },
+    {
+      "item": "R06",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00228,
+      "tokensIn": 475,
+      "tokensOut": 12
+    },
+    {
+      "item": "R06",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002505,
+      "tokensIn": 321,
+      "tokensOut": 68
+    },
+    {
+      "item": "R06",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.0010815,
+      "tokensIn": 285,
+      "tokensOut": 157
+    },
+    {
+      "item": "R08",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00084,
+      "tokensIn": 158,
+      "tokensOut": 13
+    },
+    {
+      "item": "R08",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002097,
+      "tokensIn": 485,
+      "tokensOut": 14
+    },
+    {
+      "item": "R08",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002013,
+      "tokensIn": 477,
+      "tokensOut": 13
+    },
+    {
+      "item": "R08",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002013,
+      "tokensIn": 477,
+      "tokensOut": 13
+    },
+    {
+      "item": "R08",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002961,
+      "tokensIn": 563,
+      "tokensOut": 12
+    },
+    {
+      "item": "R08",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002127,
+      "tokensIn": 336,
+      "tokensOut": 63
+    },
+    {
+      "item": "R08",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00134175,
+      "tokensIn": 295,
+      "tokensOut": 166
+    },
+    {
+      "item": "R11",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000774,
+      "tokensIn": 130,
+      "tokensOut": 13
+    },
+    {
+      "item": "R11",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001998,
+      "tokensIn": 465,
+      "tokensOut": 12
+    },
+    {
+      "item": "R11",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002166,
+      "tokensIn": 295,
+      "tokensOut": 61
+    },
+    {
+      "item": "R11",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00093075,
+      "tokensIn": 255,
+      "tokensOut": 130
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000744,
+      "tokensIn": 134,
+      "tokensOut": 12
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000819,
+      "tokensIn": 147,
+      "tokensOut": 12
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000819,
+      "tokensIn": 147,
+      "tokensOut": 12
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000819,
+      "tokensIn": 147,
+      "tokensOut": 12
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001704,
+      "tokensIn": 345,
+      "tokensOut": 13
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002151,
+      "tokensIn": 484,
+      "tokensOut": 13
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001062,
+      "tokensIn": 168,
+      "tokensOut": 13
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002151,
+      "tokensIn": 484,
+      "tokensOut": 13
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001704,
+      "tokensIn": 345,
+      "tokensOut": 13
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002151,
+      "tokensIn": 484,
+      "tokensOut": 13
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001062,
+      "tokensIn": 168,
+      "tokensOut": 13
+    },
+    {
+      "item": "R12",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002151,
+      "tokensIn": 484,
+      "tokensOut": 13
+    },
+    {
+      "item": "R14",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00075,
+      "tokensIn": 142,
+      "tokensOut": 14
+    },
+    {
+      "item": "R14",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002154,
+      "tokensIn": 483,
+      "tokensOut": 12
+    },
+    {
+      "item": "R14",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.003192,
+      "tokensIn": 278,
+      "tokensOut": 172
+    },
+    {
+      "item": "R14",
+      "role": "gap_check",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.0021915,
+      "tokensIn": 921,
+      "tokensOut": 205
+    },
+    {
+      "item": "R14",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00206025,
+      "tokensIn": 193,
+      "tokensOut": 218
+    },
+    {
+      "item": "R16",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000753,
+      "tokensIn": 133,
+      "tokensOut": 13
+    },
+    {
+      "item": "R16",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001938,
+      "tokensIn": 458,
+      "tokensOut": 13
+    },
+    {
+      "item": "R16",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001938,
+      "tokensIn": 458,
+      "tokensOut": 13
+    },
+    {
+      "item": "R16",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001938,
+      "tokensIn": 458,
+      "tokensOut": 13
+    },
+    {
+      "item": "R16",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001932,
+      "tokensIn": 458,
+      "tokensOut": 12
+    },
+    {
+      "item": "R16",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00237,
+      "tokensIn": 318,
+      "tokensOut": 113
+    },
+    {
+      "item": "R16",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00198075,
+      "tokensIn": 232,
+      "tokensOut": 246
+    },
+    {
+      "item": "R22",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00084,
+      "tokensIn": 135,
+      "tokensOut": 13
+    },
+    {
+      "item": "R22",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002256,
+      "tokensIn": 469,
+      "tokensOut": 13
+    },
+    {
+      "item": "R22",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00249,
+      "tokensIn": 311,
+      "tokensOut": 56
+    },
+    {
+      "item": "R22",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.001056,
+      "tokensIn": 267,
+      "tokensOut": 66
+    },
+    {
+      "item": "R23",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000813,
+      "tokensIn": 133,
+      "tokensOut": 13
+    },
+    {
+      "item": "R23",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002229,
+      "tokensIn": 467,
+      "tokensOut": 13
+    },
+    {
+      "item": "R23",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002223,
+      "tokensIn": 310,
+      "tokensOut": 47
+    },
+    {
+      "item": "R23",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00123375,
+      "tokensIn": 256,
+      "tokensOut": 143
+    },
+    {
+      "item": "R27",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00084,
+      "tokensIn": 133,
+      "tokensOut": 14
+    },
+    {
+      "item": "R27",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002139,
+      "tokensIn": 473,
+      "tokensOut": 13
+    },
+    {
+      "item": "R27",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.003498,
+      "tokensIn": 315,
+      "tokensOut": 130
+    },
+    {
+      "item": "R27",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00117375,
+      "tokensIn": 341,
+      "tokensOut": 150
+    },
+    {
+      "item": "R28",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.00072,
+      "tokensIn": 111,
+      "tokensOut": 16
+    },
+    {
+      "item": "R28",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002193,
+      "tokensIn": 455,
+      "tokensOut": 12
+    },
+    {
+      "item": "R28",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001467,
+      "tokensIn": 278,
+      "tokensOut": 20
+    },
+    {
+      "item": "R28",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.0011175,
+      "tokensIn": 192,
+      "tokensOut": 138
+    },
+    {
+      "item": "R32",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000762,
+      "tokensIn": 124,
+      "tokensOut": 12
+    },
+    {
+      "item": "R32",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001869,
+      "tokensIn": 426,
+      "tokensOut": 12
+    },
+    {
+      "item": "R32",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002163,
+      "tokensIn": 301,
+      "tokensOut": 61
+    },
+    {
+      "item": "R32",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00170025,
+      "tokensIn": 258,
+      "tokensOut": 128
+    },
+    {
+      "item": "R34",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001158,
+      "tokensIn": 114,
+      "tokensOut": 41
+    },
+    {
+      "item": "R34",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002376,
+      "tokensIn": 449,
+      "tokensOut": 13
+    },
+    {
+      "item": "R34",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001782,
+      "tokensIn": 295,
+      "tokensOut": 28
+    },
+    {
+      "item": "R34",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00094125,
+      "tokensIn": 218,
+      "tokensOut": 107
+    },
+    {
+      "item": "R35",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.000798,
+      "tokensIn": 137,
+      "tokensOut": 13
+    },
+    {
+      "item": "R35",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.001569,
+      "tokensIn": 191,
+      "tokensOut": 44
+    },
+    {
+      "item": "R35",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002136,
+      "tokensIn": 471,
+      "tokensOut": 12
+    },
+    {
+      "item": "R35",
+      "role": "assessor",
+      "model": "anthropic/claude-4.6-sonnet-20260217",
+      "provider": "Claude Platform on AWS",
+      "cost": 0.002151,
+      "tokensIn": 304,
+      "tokensOut": 68
+    },
+    {
+      "item": "R35",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google",
+      "cost": 0.00125175,
+      "tokensIn": 271,
+      "tokensOut": 114
+    },
+    {
+      "item": "R38",
+      "role": "assessor",
+      "model": "anthropic/claude-sonnet-4.6"
+    },
+    {
+      "item": "R38",
+      "role": "assessor",
+      "model": "anthropic/claude-sonnet-4.6"
+    },
+    {
+      "item": "R38",
+      "role": "assessor",
+      "model": "anthropic/claude-sonnet-4.6"
+    },
+    {
+      "item": "R38",
+      "role": "verifier",
+      "model": "google/gemini-3.8-flash"
+    }
+  ],
+  "items": [
+    {
+      "id": "R01",
+      "difficulty": "easy",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.3.2",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.3.3.2",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.99,
+      "verifier_agrees": true,
+      "verifier_confidence": 0.99,
+      "retrieval_path": [
+        "5.3.3",
+        "5.3.3",
+        "5.3.3",
+        "5.3.3"
+      ],
+      "llm_calls": 7,
+      "assessor_quote_sha256": "a90fa3a97152c1902b8aa1e90bf9a4667d48e72d8321e5a34b0531cba2d22475",
+      "assessor_quote_words": 22,
+      "gap_check": null
+    },
+    {
+      "id": "R02",
+      "difficulty": "medium",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.3.2",
+      "raw_verdict": "insufficient",
+      "pred_verdict": "insufficient",
+      "pred_clause": "5.3.14.1",
+      "verdict_correct": false,
+      "clause_outcome": "wrong_clause",
+      "review_required": true,
+      "review_reason": "low_confidence",
+      "review_without_verifier": "low_confidence",
+      "verifier_effect": "none",
+      "assessor_confidence": 0.1,
+      "verifier_agrees": true,
+      "verifier_confidence": 0.99,
+      "retrieval_path": [
+        "5.3.14.1"
+      ],
+      "llm_calls": 4,
+      "assessor_quote_sha256": null,
+      "assessor_quote_words": null,
+      "gap_check": null
+    },
+    {
+      "id": "R04",
+      "difficulty": "easy",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.3.3",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.3.3.3",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.99,
+      "verifier_agrees": true,
+      "verifier_confidence": 1,
+      "retrieval_path": [
+        "5.3.3.2",
+        "5.3.3.4",
+        "5.3.3.4",
+        "5.3.3.4"
+      ],
+      "llm_calls": 7,
+      "assessor_quote_sha256": "98f5353c02eb418b4bff5420e831d3fa57b287734ee2864917882d21778a953c",
+      "assessor_quote_words": 12,
+      "gap_check": null
+    },
+    {
+      "id": "R06",
+      "difficulty": "medium",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.3.3",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.3.3.3",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.99,
+      "verifier_agrees": true,
+      "verifier_confidence": 1,
+      "retrieval_path": [
+        "5.3.3.2",
+        "5.3.3.3"
+      ],
+      "llm_calls": 6,
+      "assessor_quote_sha256": "1021e8a36268d19f4950cba9fb0c16b7cb40250422faab0b943efe0126e7a975",
+      "assessor_quote_words": 27,
+      "gap_check": null
+    },
+    {
+      "id": "R08",
+      "difficulty": "hard",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.5.3",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.3.5.3",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.97,
+      "verifier_agrees": true,
+      "verifier_confidence": 1,
+      "retrieval_path": [
+        "5.3.7.4",
+        "5.3.5.8.2",
+        "5.3.5.8.2",
+        "5.3.5.8.2"
+      ],
+      "llm_calls": 7,
+      "assessor_quote_sha256": "64e6cb0c97445c2144f3920c2a0d81f539368fbf9a53f61028604c5b5ed9e0f5",
+      "assessor_quote_words": 25,
+      "gap_check": null
+    },
+    {
+      "id": "R11",
+      "difficulty": "easy",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.7.3",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.3.7.3",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.99,
+      "verifier_agrees": true,
+      "verifier_confidence": 1,
+      "retrieval_path": [
+        "5.3.7.3"
+      ],
+      "llm_calls": 4,
+      "assessor_quote_sha256": "2efcb4278f629026bc68011cbaf3614d60358dba7a29a5629df667ec58a2d56d",
+      "assessor_quote_words": 29,
+      "gap_check": null
+    },
+    {
+      "id": "R12",
+      "difficulty": "easy",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.7.3",
+      "raw_verdict": "insufficient",
+      "pred_verdict": "insufficient",
+      "pred_clause": null,
+      "verdict_correct": false,
+      "clause_outcome": "no_citation",
+      "review_required": true,
+      "review_reason": "no_clause_found",
+      "review_without_verifier": "no_clause_found",
+      "verifier_effect": "none",
+      "assessor_confidence": 0.2,
+      "verifier_agrees": true,
+      "verifier_confidence": 0.5,
+      "retrieval_path": [
+        "5.3.7",
+        "5.3.7",
+        "5.3.7",
+        "5.3.7",
+        "5.3.7.3",
+        "5.2.2.2",
+        "5.3.7.3",
+        "5.2.2.2",
+        "5.3.7.3",
+        "5.2.2.2",
+        "5.3.7.3",
+        "5.2.2.2"
+      ],
+      "llm_calls": 12,
+      "assessor_quote_sha256": null,
+      "assessor_quote_words": null,
+      "gap_check": null
+    },
+    {
+      "id": "R14",
+      "difficulty": "medium",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.8.3",
+      "raw_verdict": "gap",
+      "pred_verdict": "insufficient",
+      "pred_clause": "5.3.8.3",
+      "verdict_correct": false,
+      "clause_outcome": "exact",
+      "review_required": true,
+      "review_reason": "gap_no_contradiction",
+      "review_without_verifier": "gap_no_contradiction",
+      "verifier_effect": "none",
+      "assessor_confidence": 0.95,
+      "verifier_agrees": false,
+      "verifier_confidence": 0.98,
+      "retrieval_path": [],
+      "llm_calls": 5,
+      "assessor_quote_sha256": "56e1608373153eb871a9fef00e998a6ea416e916f8a57b186cc4b1150757ec96",
+      "assessor_quote_words": 38,
+      "gap_check": {
+        "guard": "verifier",
+        "outcome": "gap_no_contradiction",
+        "same_subject": true,
+        "contradicts": false,
+        "passage_sha256": "56e1608373153eb871a9fef00e998a6ea416e916f8a57b186cc4b1150757ec96",
+        "passage_words": 38,
+        "passage_extended": false,
+        "notes_count": 9,
+        "notes_truncated": false,
+        "reply_attempts": 1,
+        "reply_sha256": [
+          "fa6ea825d6ed5d70721c5cb1d35e45a70ba39a1a81d1af423ef8210ea429a04b"
+        ]
+      }
+    },
+    {
+      "id": "R16",
+      "difficulty": "hard",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.5.4.1",
+      "raw_verdict": "insufficient",
+      "pred_verdict": "insufficient",
+      "pred_clause": "5.5.4.1",
+      "verdict_correct": false,
+      "clause_outcome": "exact",
+      "review_required": true,
+      "review_reason": "low_confidence",
+      "review_without_verifier": "low_confidence",
+      "verifier_effect": "none",
+      "assessor_confidence": 0.45,
+      "verifier_agrees": true,
+      "verifier_confidence": 0.95,
+      "retrieval_path": [
+        "5.5.2.1",
+        "5.5.2.1",
+        "5.5.2.1",
+        "5.5.2.1"
+      ],
+      "llm_calls": 7,
+      "assessor_quote_sha256": null,
+      "assessor_quote_words": null,
+      "gap_check": null
+    },
+    {
+      "id": "R22",
+      "difficulty": "medium",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.13.3",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.3.13.3",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.99,
+      "verifier_agrees": true,
+      "verifier_confidence": 1,
+      "retrieval_path": [
+        "5.3.13.3"
+      ],
+      "llm_calls": 4,
+      "assessor_quote_sha256": "3da56c39278d6f8299e8bec3213ecb91d78e080c8cd4ef7a7160bda2d1f0718c",
+      "assessor_quote_words": 23,
+      "gap_check": null
+    },
+    {
+      "id": "R23",
+      "difficulty": "medium",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.13.3",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.3.13.3",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.99,
+      "verifier_agrees": true,
+      "verifier_confidence": 0.99,
+      "retrieval_path": [
+        "5.3.13.3"
+      ],
+      "llm_calls": 4,
+      "assessor_quote_sha256": "a5754547fea26fbaa189d4b5468ab075253136e70a32b52e82ce8b624ca6715b",
+      "assessor_quote_words": 18,
+      "gap_check": null
+    },
+    {
+      "id": "R27",
+      "difficulty": "hard",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.10.3",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.3.10.3",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.99,
+      "verifier_agrees": true,
+      "verifier_confidence": 1,
+      "retrieval_path": [],
+      "llm_calls": 4,
+      "assessor_quote_sha256": "36c7bd16f2d0ad0dc023cec311e096d78cacbe5cfe002acc9482d898ef046c6d",
+      "assessor_quote_words": 73,
+      "gap_check": null
+    },
+    {
+      "id": "R28",
+      "difficulty": "easy",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.11",
+      "raw_verdict": "conformant",
+      "pred_verdict": "insufficient",
+      "pred_clause": "5.3.11",
+      "verdict_correct": false,
+      "clause_outcome": "exact",
+      "review_required": true,
+      "review_reason": "citation_too_short",
+      "review_without_verifier": "citation_too_short",
+      "verifier_effect": "none",
+      "assessor_confidence": 1,
+      "verifier_agrees": false,
+      "verifier_confidence": 0.99,
+      "retrieval_path": [],
+      "llm_calls": 4,
+      "assessor_quote_sha256": "d71d622e929536ed578627d23db4c139b5588b8617a16a58be16022361d6b3e0",
+      "assessor_quote_words": 3,
+      "gap_check": null
+    },
+    {
+      "id": "R32",
+      "difficulty": "medium",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.2.2.3.1",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.2.1",
+      "verdict_correct": true,
+      "clause_outcome": "wrong_clause",
+      "review_required": true,
+      "review_reason": "verifier_disagreement",
+      "review_without_verifier": null,
+      "verifier_effect": "forced_review",
+      "assessor_confidence": 0.85,
+      "verifier_agrees": false,
+      "verifier_confidence": 0.95,
+      "retrieval_path": [
+        "5.2.1"
+      ],
+      "llm_calls": 4,
+      "assessor_quote_sha256": "e1970c6f307370424433e4bd0a5e23c07eb816cf6cc1ce45b3af5ec7fe76b3e2",
+      "assessor_quote_words": 28,
+      "gap_check": null
+    },
+    {
+      "id": "R34",
+      "difficulty": "easy",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.2.2.4.1",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.2.2.4.1",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 1,
+      "verifier_agrees": true,
+      "verifier_confidence": 1,
+      "retrieval_path": [],
+      "llm_calls": 4,
+      "assessor_quote_sha256": "eef893691c0f0bdd06cd885a94601a5fcedd629bcf3cb4854c39ecb5a4ee3884",
+      "assessor_quote_words": 5,
+      "gap_check": null
+    },
+    {
+      "id": "R35",
+      "difficulty": "hard",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.3.6.3",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.3.6.3",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.99,
+      "verifier_agrees": true,
+      "verifier_confidence": 1,
+      "retrieval_path": [
+        "5.3.4.1"
+      ],
+      "llm_calls": 5,
+      "assessor_quote_sha256": "633e49261e411de8c3b5ac79f2b530cff1d0612c44408848f9f19d48560b4a44",
+      "assessor_quote_words": 35,
+      "gap_check": null
+    },
+    {
+      "id": "R38",
+      "difficulty": "medium",
+      "gold_verdict": "conformant",
+      "gold_clause": "5.6.1.3",
+      "raw_verdict": "conformant",
+      "pred_verdict": "conformant",
+      "pred_clause": "5.6.1.3",
+      "verdict_correct": true,
+      "clause_outcome": "exact",
+      "review_required": false,
+      "review_reason": null,
+      "review_without_verifier": null,
+      "verifier_effect": "none",
+      "assessor_confidence": 0.99,
+      "verifier_agrees": true,
+      "verifier_confidence": 0.99,
+      "retrieval_path": [],
+      "llm_calls": 4,
+      "assessor_quote_sha256": "8a87fd5e4c4b93c8f29551661ad065c3e1830bbeadb1f2f75cb5dc2eb610b16f",
+      "assessor_quote_words": 29,
+      "gap_check": null
+    }
+  ]
+}

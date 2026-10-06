@@ -50,3 +50,23 @@ and check that the `sha256` in the object is the SHA-256 of the pre-registration
   `ad3175f1` (and the results files being generated afterwards), plus any copy of the repository taken before a history rewrite (a `git bundle` of the repository is kept for that purpose).
 - The signing key is the sidecar's **local development key**, generated on first start of the compose stack. It is **not** listed in `vidimus-svc/trusted-keys.json`, so a verifier pinned to that file would reject it.
   For a record that outlives this machine, re-sign with the production key (after it is registered in `trusted-keys.json`) and keep this page as a second witness.
+
+## Full hash of the pre-registration file
+The complete SHA-256 of `eval/PREREGISTRATION-gap-guard.md` (identical at commit `ad3175f1` and in the working tree when it was signed):
+
+```
+77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014
+```
+
+Recompute it with `git show ad3175f1ffef683855172fdde73093373483004e:eval/PREREGISTRATION-gap-guard.md | shasum -a 256`.
+
+## Horodatage indépendant (independent timestamp)
+The signature above is **not** an independent timestamp:
+- it was made with the sidecar's **local development key**, which is **absent from `vidimus-svc/trusted-keys.json`**, so nobody can pin it as a trusted issuer;
+- `signed_at` is a value written by the signer itself and the signature was produced after the evaluation runs.
+
+What would make the date verifiable by a third party is to **publish the hash above somewhere outside this repository and this machine** (for example in a public issue or release note of an unrelated account, a signed email, or a public timestamping service), so that its publication date
+is attested by someone else. **This has not been done yet**; the hash is to be published elsewhere, and this page should then be updated with the place and date of publication.
+
+OpenTimestamps (Bitcoin-anchored proof) would be one way: `ots stamp eval/PREREGISTRATION-gap-guard.md` produces `eval/PREREGISTRATION-gap-guard.md.ots`, and `ots verify` checks it later. **No `.ots` file exists**: the OpenTimestamps client is **not installed** on the machine
+that produced this record (checked: no `ots` command, no `opentimestamps-client` Python package), and nothing was installed for this purpose.

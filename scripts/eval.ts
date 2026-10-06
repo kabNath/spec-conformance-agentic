@@ -457,6 +457,7 @@ async function main() {
       verifierModel: process.env.OPENROUTER_VERIFIER_MODEL ?? null, // null ⇒ same model as the assessor
       gapGuard: process.env.GAP_GUARD ?? "verifier",
       verifierProvider: process.env.OPENROUTER_VERIFIER_PROVIDER ?? null,
+      citationWindowChars: Number(process.env.CITATION_WINDOW_CHARS) || 4000,
       citationGuards: true, // verbatim excerpt + grounded-gap + other-family verifier (lib/graph/judge.ts)
       subset: only ? only.length : null,
       embeddingsModel: process.env.EMBEDDINGS_MODEL ?? "openai/text-embedding-3-small",

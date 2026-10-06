@@ -699,6 +699,47 @@ Per item (verdict / outcome under each configuration):
    assessor's prompt, the window, retrieval or run-to-run variation, none of which is replayed here.
 5. **Accuracy by configuration (N=40, per pass):** (c) 67.5 / 70.0 %, (d) 65.0 / 67.5 %, (a) 60.0 / 62.5 %, (b) 57.5 / 60.0 %. The gap guard raises it (it turns false gaps into correct `insufficient`), the verbatim check lowers it by one item here.
 
+## Ablation de la fenêtre, items conformant seulement
+
+**Question.** Does the size of the citation window explain the drop of conformant recall between v1 and v2? Only the 17 items whose human reference verdict is `conformant` ([`eval/conformant-subset.json`](eval/conformant-subset.json)) were replayed, **evaluator included**,
+with the window set to **500 characters** (`CITATION_WINDOW_CHARS=500`), the v2 guards active (`GAP_GUARD=verifier`), the same models (assessor `anthropic/claude-sonnet-4.6`; verifier `google/gemini-3.8-flash` pinned to `google-vertex`), temperature 0, **two passes**.
+The 4000-character arm is **not re-run**: it is the same 17 items taken from the two existing v2 passes. The default `CITATION_WINDOW_CHARS` stays at 4000. This is a diagnostic, not a tuning.
+
+**Read this first.**
+- **The two arms were run at different times** (the 4000 arm on 2026-10-06 during the v2 evaluation, the 500 arm later the same day, after the code had changed only by the `citation_too_short` renaming); any provider or model drift between the two moments is confounded with the window.
+- **These 17 items have already been seen** (v1 failure analysis, v2 results, the guard ablation, and R11, R12, R16, R28, R32 were examined individually). They are not an independent sample, and two passes of 17 items measure stability, not generalisation.
+- The 500-character window here is the **relevance-selected** 500 characters of the clause (`lib/citation-window.ts`), not the first 500 characters that v1 used.
+
+| window | pass | verdicts: conformant / gap / insufficient | conformant recall [Wilson 95 %] | committed | sent to review (reasons) | system errors | real cost |
+|---|---|---|---|---|---|---|---|
+| 4000 | 1 | 11 / 0 / 6 | 11/17 = 64.7 % [41–83] | 10/17 (10 correct, no silent error) | 7: 1 verifier_disagreement, 3 low_confidence, 1 no_clause_found, 1 gap_no_contradiction, 1 citation_not_verbatim | 0 | $0.1959 |
+| 4000 | 2 | 11 / 0 / 6 | 11/17 = 64.7 % [41–83] | 11/17 (10 correct, silent error: R11) | 6: 1 verifier_disagreement, 1 no_clause_found, 1 gap_no_contradiction, 2 low_confidence, 1 citation_not_verbatim | 0 | $0.2104 |
+| 500 | 1 | 11 / 0 / 6 | 11/17 = 64.7 % [41–83] | 11/17 (11 correct, no silent error) | 6: 3 low_confidence, 1 no_clause_found, 1 gap_no_contradiction, 1 citation_too_short | 0 | $0.1450 (+9 unresolved lookups) |
+| 500 | 2 | 12 / 0 / 5 | 12/17 = 70.6 % [47–87] | 11/17 (11 correct, no silent error) | 6: 2 low_confidence, 1 no_clause_found, 1 gap_no_contradiction, 1 citation_too_short, 1 verifier_disagreement | 0 | $0.1507 (+4 unresolved lookups) |
+
+Cost of the 500 arm: 0.1450 + 0.1507 = **0.2957 USD** (13 of 184 OpenRouter generation records could not be retrieved, so slightly under-counted); cost of the same 17 items in the 4000 arm: 0.1959 + 0.2104 = 0.4063 USD. Every resolved verifier call reports provider "Google".
+
+### R11, R12, R16, R32 — verdict / assessor confidence (outcome)
+
+| item | 4000, pass 1 | 4000, pass 2 | 500, pass 1 | 500, pass 2 |
+|---|---|---|---|---|
+| R11 | insufficient / 0.7 (low_confidence) | insufficient / 0.85 (committed) | conformant / 0.99 (committed) | conformant / 0.99 (committed) |
+| R12 | insufficient / 0.2 (no_clause_found) | insufficient / 0.2 (no_clause_found) | insufficient / 0.2 (no_clause_found) | insufficient / 0.2 (no_clause_found) |
+| R16 | insufficient / 0.1 (low_confidence) | insufficient / 0.1 (low_confidence) | insufficient / 0.45 (low_confidence) | insufficient / 0.45 (low_confidence) |
+| R32 | insufficient / 0.55 (low_confidence) | insufficient / 0.55 (low_confidence) | insufficient / 0.55 (low_confidence) | conformant / 0.85 (verifier_disagreement) |
+
+### What changes between the arms
+- **Conformant recall: no detectable difference** (4000: 11/17 and 11/17; 500: 11/17 and 12/17; the intervals overlap almost completely).
+- **Verdict flips on three items**: R11 becomes `conformant`, committed, confidence 0.99 in both 500 passes (at 4000 it was `insufficient`: review in pass 1, and a committed silent error in pass 2); R02 goes from `conformant` (sent to review for a verifier disagreement) to `insufficient` with confidence 0.0 / 0.1 (review);
+  R32 is `conformant` (review, verifier disagreement) in 500 pass 2 only. Net effect: committed items 11 and 11 at 500 (all correct) vs 10 and 11 at 4000 (one silent error, R11, in pass 2).
+- **R12** is unchanged (no clause retrieved, confidence 0.2); **R16** stays `insufficient` in review (confidence 0.45 instead of 0.1); **R28** is `insufficient` in review in both arms (the exact 3-word quote, now reported as `citation_too_short` in the 500 arm; `citation_not_verbatim` in the older 4000 files).
+- **Stability between the two passes**: 17/17 identical verdicts at 4000, 16/17 at 500 (R32).
+
+### Reading
+Shrinking the window to 500 characters does **not** bring conformant recall back to its v1 level (88.2 % and 82.4 % in v1): it stays at 64.7–70.6 %. Within this design the window does not explain the drop, which must come from other v2 changes that this ablation does not isolate
+(the assessor prompt that asks for a quote, the verifier model, retrieval variation). The window does move individual items (R11 up, R02 down) in both directions, with one-item differences that two passes of 17 items cannot separate from run-to-run variation.
+The 500-character arm is about a quarter cheaper (0.30 vs 0.41 USD). No default was changed. The raw 500 results are git-ignored; their sanitised versions are `eval/results-v2-window500-{1,2}.public.json`.
+
 ## Limites de cette évaluation (limits of this evaluation)
 
 This section is about the evaluation of the `GAP_GUARD=verifier` rule (pre-registered in
@@ -725,6 +766,7 @@ Nothing was tuned on the TEST group: prompts, caps and criteria were committed b
 ## Changelog
 
 - **Reason rename (2026-10-06)** — `citation_too_short` when the quote is exact but under the 4-word minimum; `citation_not_verbatim` only when the quote is missing or absent from the clause. The minimum is unchanged. The committed v2 result files keep the old name (the replay in *Ablation des gardes* recognises both).
+- **Window ablation (2026-10-06)** — 17 conformant items, 500-character window, 2 passes vs the existing 4000-character passes; see *Ablation de la fenêtre*. Default unchanged.
 - **v2 ablation (2026-10-06)** — offline replay of the guards (none / verbatim / gap / both), 10 fresh verifier calls; see *Ablation des gardes*.
 - **v2 (2026-10-06)** — citation guards, verifier-confirmed gaps (`GAP_GUARD=verifier`), other-family verifier, sanitised results, v2 regression baseline and recalibrated confidence (`cal-102be0bdb9d1`). Measured on two full passes; pre-registration `ad3175f1`. See *v2*. v1 sections unchanged.
 - **v1.2 (2026-10-06)** — calibration re-done at item level with item-grouped 5-fold cross-validation;
