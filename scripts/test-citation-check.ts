@@ -1,7 +1,8 @@
 // Offline unit test for the deterministic citation guards — no LLM, no database.
 // Run: npx tsx scripts/test-citation-check.ts
 import { judge, type JudgeDeps } from "../lib/graph/judge";
-import { guardVerdict, gapVerifierDecision, isVerbatim, modelFamily, normalizeWs } from "../lib/citation-check";
+import { existsSync, readFileSync } from "node:fs";
+import { guardVerdict, gapVerifierDecision, isVerbatim, modelFamily, normalizeWs, MIN_QUOTE_WORDS } from "../lib/citation-check";
 
 // Paraphrased fixture shaped like TS 38.331 §5.3.5.3 (spec text itself is not redistributed).
 const CLAUSE_5353 =
@@ -55,6 +56,33 @@ check("a gap needs a normative word in the excerpt itself (no shall/must → not
 g = guardVerdict({ verdict: "conformant", quote: R10_QUOTE, requirement: R10, clauseText: CLAUSE_5353 });
 check("conformant only needs a verbatim quote", g.verdict === "conformant" && !g.reason);
 
+// --- citation_too_short vs citation_not_verbatim ----------------------------------------------------------
+async function reasonTests() {
+  const clause = "The terminal shall:\n\n1>\tstore the value;";
+  let g2 = guardVerdict({ verdict: "conformant", quote: "The terminal shall:", requirement: "x", clauseText: clause });
+  check("exact quote under the 4-word minimum → citation_too_short (verdict still forced to insufficient_evidence)",
+    g2.verdict === "insufficient_evidence" && g2.reason === "citation_too_short", JSON.stringify(g2));
+  g2 = guardVerdict({ verdict: "conformant", quote: "The device must", requirement: "x", clauseText: clause });
+  check("short AND absent from the clause → citation_not_verbatim", g2.reason === "citation_not_verbatim", JSON.stringify(g2));
+  g2 = guardVerdict({ verdict: "conformant", quote: "", requirement: "x", clauseText: clause });
+  check("missing quote → citation_not_verbatim", g2.reason === "citation_not_verbatim", JSON.stringify(g2));
+  g2 = guardVerdict({ verdict: "conformant", quote: "The terminal shall store the value of everything", requirement: "x", clauseText: clause });
+  check("long but absent → citation_not_verbatim", g2.reason === "citation_not_verbatim", JSON.stringify(g2));
+  check("the minimum itself is unchanged (4 words)", MIN_QUOTE_WORDS === 4 && guardVerdict({ verdict: "conformant", quote: "1> store the value;", requirement: "x", clauseText: clause.replace("1>\t", "1> ") }).reason === undefined);
+  g2 = guardVerdict({ verdict: "gap", quote: "The terminal shall:", requirement: "x", clauseText: clause });
+  check("a short exact quote on a gap is also citation_too_short", g2.reason === "citation_too_short");
+
+  // R28 as it really happened (local only: needs the raw v2 results and the non-redistributable spec extract)
+  if (existsSync("eval/results-v2-gapguard-1.json") && existsSync("examples/ts38331-extract.txt")) {
+    const { parseSpec } = await import("../lib/parser-3gpp");
+    const raw = JSON.parse(readFileSync("eval/results-v2-gapguard-1.json", "utf8")).items.find((i: { id: string }) => i.id === "R28");
+    const t = parseSpec(readFileSync("examples/ts38331-extract.txt", "utf8"), { spec: "x", version: "x", release: "x" });
+    const r = guardVerdict({ verdict: raw.raw_verdict, quote: raw.assessor_quote, requirement: "x", clauseText: String(t.nodes[raw.pred_clause].text) });
+    check("[real data] R28: the assessor's exact 3-word quote is now reported as citation_too_short, not citation_not_verbatim",
+      r.reason === "citation_too_short" && raw.assessor_quote.trim().split(/\s+/).length === 3, JSON.stringify(r));
+  } else console.log("⏭  [real data] R28 check skipped (raw results / spec extract not present)");
+}
+
 // --- verifier family --------------------------------------------------------
 check("modelFamily", modelFamily("Anthropic/claude-sonnet-4.6") === "anthropic");
 check("gap needs a verifier model", !gapVerifierDecision({ assessorModel: "anthropic/x", verifierAgrees: true }).ok);
@@ -103,7 +131,7 @@ async function judgeTests() {
   check("no verifier model configured → gap cannot commit", j.blockedReason === "verifier_same_family");
 }
 
-judgeTests().then(() => {
+reasonTests().then(judgeTests).then(() => {
   if (failed) { console.error(`\n${failed} check(s) failed`); process.exit(1); }
   console.log("\nall citation-check tests passed");
 });

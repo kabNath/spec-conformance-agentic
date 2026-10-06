@@ -27,7 +27,8 @@ export type ReviewReason =
   | "verifier_disagreement"
   | "no_clause_found"
   | "conflicting_clauses"
-  | "citation_not_verbatim"   // the cited excerpt is not verbatim in the ingested clause → verdict forced to insufficient_evidence
+  | "citation_not_verbatim"   // the cited excerpt is missing or not verbatim in the ingested clause → verdict forced to insufficient_evidence
+  | "citation_too_short"      // the cited excerpt IS exact but under the minimum length (4 words) → verdict forced to insufficient_evidence
   | "gap_not_grounded"        // a gap needs a shall/must sentence about the requirement's subject → forced to insufficient_evidence
   | "verifier_same_family"
   | "gap_off_subject"          // GAP_GUARD=verifier: the cited passage is not about the requirement's subject

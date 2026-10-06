@@ -12,7 +12,7 @@
 // independent check (different model family), not the only line of defence.
 import type { Verdict } from "./conformance-contract";
 
-export type GuardReason = "citation_not_verbatim" | "gap_not_grounded";
+export type GuardReason = "citation_not_verbatim" | "citation_too_short" | "gap_not_grounded";
 
 /** Minimum words in a quote: shorter strings are trivially "verbatim". */
 export const MIN_QUOTE_WORDS = 4;
@@ -25,11 +25,22 @@ export function normalizeWs(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }
 
+export type QuoteCheck = "ok" | "too_short" | "not_verbatim";
+
+/**
+ * "ok": the quote occurs verbatim (whitespace-normalised) in the clause and has at least MIN_QUOTE_WORDS words.
+ * "too_short": it occurs verbatim but is under the minimum (the quote is exact, only too short to count as grounding).
+ * "not_verbatim": it is missing/empty or does not occur in the clause.
+ */
+export function checkQuote(quote: string | undefined | null, clauseText: string): QuoteCheck {
+  const q = normalizeWs(quote ?? "");
+  if (!q || !normalizeWs(clauseText).includes(q)) return "not_verbatim";
+  return q.split(" ").length < MIN_QUOTE_WORDS ? "too_short" : "ok";
+}
+
 /** True iff `quote` (non-trivial) occurs verbatim in `clauseText`, whitespace-normalised. */
 export function isVerbatim(quote: string | undefined | null, clauseText: string): boolean {
-  const q = normalizeWs(quote ?? "");
-  if (q.split(" ").filter(Boolean).length < MIN_QUOTE_WORDS) return false;
-  return normalizeWs(clauseText).includes(q);
+  return checkQuote(quote, clauseText) === "ok";
 }
 
 const NORMATIVE_RE = /\b(shall(?:\s+not)?|must(?:\s+not)?)\b/i;
@@ -82,9 +93,14 @@ export function guardVerdict(i: {
   lexicalGap?: boolean;
 }): GuardOutcome {
   if (i.verdict === "insufficient_evidence") return { verdict: i.verdict };
-  if (!isVerbatim(i.quote, i.clauseText)) {
+  const q = checkQuote(i.quote, i.clauseText);
+  if (q === "too_short") {
+    return { verdict: "insufficient_evidence", reason: "citation_too_short",
+      detail: `the cited excerpt is exact but has fewer than ${MIN_QUOTE_WORDS} words, too short to ground a verdict` };
+  }
+  if (q === "not_verbatim") {
     return { verdict: "insufficient_evidence", reason: "citation_not_verbatim",
-      detail: "the cited excerpt is missing, too short, or not found verbatim in the clause text" };
+      detail: "the cited excerpt is missing or not found verbatim in the clause text" };
   }
   if (i.verdict === "gap" && i.lexicalGap !== false) {
     const g = gapGrounding(i.quote!, i.requirement);

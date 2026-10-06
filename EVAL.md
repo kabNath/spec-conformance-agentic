@@ -588,7 +588,7 @@ Conformant recall dropped from 88.2 % / 82.4 % (v1) to 64.7 % / 64.7 % (11 of 17
 
 | item | assessor | outcome in v2 |
 |---|---|---|
-| R28 | `conformant`, confidence 0.99 | quote not verbatim → forced to `insufficient`, review (`citation_not_verbatim`) |
+| R28 | `conformant`, confidence 0.99 | quote under the 4-word minimum → forced to `insufficient`, review (recorded as `citation_not_verbatim`; now reported as `citation_too_short`, see below) |
 | R14 | `gap` (0.92) | gap blocked by question (b) → `insufficient`, review |
 | R11 | `insufficient` | pass 1: low confidence → review; pass 2: **committed** as `insufficient` (silent error) |
 | R16, R32 | `insufficient`, low confidence | review (`low_confidence`); R32 also retrieved the wrong clause |
@@ -723,6 +723,7 @@ Nothing was tuned on the TEST group: prompts, caps and criteria were committed b
 
 ## Changelog
 
+- **Reason rename (2026-10-06)** — `citation_too_short` when the quote is exact but under the 4-word minimum; `citation_not_verbatim` only when the quote is missing or absent from the clause. The minimum is unchanged. The committed v2 result files keep the old name (the replay in *Ablation des gardes* recognises both).
 - **v2 ablation (2026-10-06)** — offline replay of the guards (none / verbatim / gap / both), 10 fresh verifier calls; see *Ablation des gardes*.
 - **v2 (2026-10-06)** — citation guards, verifier-confirmed gaps (`GAP_GUARD=verifier`), other-family verifier, sanitised results, v2 regression baseline and recalibrated confidence (`cal-102be0bdb9d1`). Measured on two full passes; pre-registration `ad3175f1`. See *v2*. v1 sections unchanged.
 - **v1.2 (2026-10-06)** — calibration re-done at item level with item-grouped 5-fold cross-validation;

@@ -96,8 +96,8 @@ async function judgeTests() {
     j.gapCheck?.passageExtended === true && j.gapCheck.passage!.includes("delay the teardown actions") && isVerbatim(j.gapCheck.passage!, HDR) &&
     seen[0].includes("stop timer T777") && j.a.verdict === "gap");
   const short = await judge(R15, "ts38331", cite("5.3.8.3", RELEASE), deps("The terminal shall:", [good]));
-  check("a 3-word header quote ('The UE shall:') is refused by the verbatim guard (min 4 words) before any verifier call",
-    short.blockedReason === "citation_not_verbatim" && !short.gapCheck);
+  check("a 3-word header quote ('The terminal shall:') is refused as citation_too_short (exact, under the 4-word minimum) before any verifier call",
+    short.blockedReason === "citation_too_short" && !short.gapCheck);
 
   j = await judge(R10, "ts38331", cite("5.3.8.3", RELEASE), deps(q14, [JSON.stringify({ same_subject: false, subject: "", contradicts: false, passage_words: "", requirement_words: "" })]));
   check("R10-like (persist messages for 30 days vs RRC release): (a)=no → NOT committed as gap",

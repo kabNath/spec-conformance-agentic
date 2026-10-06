@@ -16,7 +16,7 @@ type Item = { id: string; gold_verdict: string; raw_verdict: string; pred_verdic
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 const CALLS = here("../eval/ablation-verifier-calls.json");
 const REVIEW_THRESHOLD = 0.75;
-const BLOCKS = new Set(["citation_not_verbatim", "gap_off_subject", "gap_no_contradiction", "gap_verifier_unusable", "verifier_same_family", "gap_not_grounded"]);
+const BLOCKS = new Set(["citation_not_verbatim", "citation_too_short", "gap_off_subject", "gap_no_contradiction", "gap_verifier_unusable", "verifier_same_family", "gap_not_grounded"]);
 
 export interface Cfg { name: string; verbatim: boolean; gap: boolean }
 export const CONFIGS: Cfg[] = [
@@ -33,10 +33,11 @@ export interface Replayed { id: string; verdict: string; blocked: string | null;
 /** One item under one configuration. `calls` maps counterfactual states to the verifier's recorded answer. */
 export function replay(p: Item, cfg: Cfg, pass: number, calls: Record<CallKey, { agrees: boolean }>): Replayed {
   const hasCitation = p.pred_clause !== null;
-  const verbatimFails = p.review_reason === "citation_not_verbatim";
+  // the v2 runs recorded this guard as "citation_not_verbatim"; it is now "citation_too_short" when the quote is exact but short
+  const verbatimFails = p.review_reason === "citation_not_verbatim" || p.review_reason === "citation_too_short";
   let verdict = p.raw_verdict, blocked: string | null = null;
   if (hasCitation && p.raw_verdict !== "insufficient") {
-    if (cfg.verbatim && verbatimFails) { verdict = "insufficient"; blocked = "citation_not_verbatim"; }
+    if (cfg.verbatim && verbatimFails) { verdict = "insufficient"; blocked = p.review_reason; }
     else if (cfg.gap && p.raw_verdict === "gap") {
       if (verbatimFails) throw new Error(`${p.id}: gap guard needs a verbatim quote (not observed without the verbatim guard)`);
       const o = p.gap_check?.outcome;
