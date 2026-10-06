@@ -122,6 +122,7 @@ export interface EvaluatedRequirement {
   gapNote?: string;
   retrievalPath?: string[];    // ToC → section → clause trail (audit trail)
   attestation?: Attestation;   // vidimus: calibrated confidence + signed proof
+  trace?: import("./trace").RequirementTrace; // audit trace: raw verdict before the guards, guard reason, quote status (lib/trace.ts)
 
   model: string;
   evaluatedAt: string;

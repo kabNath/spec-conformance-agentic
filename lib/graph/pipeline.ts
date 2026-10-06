@@ -8,6 +8,7 @@ import { ConformanceState, type ConformanceStateT } from "./state";
 import { extractNode } from "./nodes/extract";
 import { retrieveNode } from "./nodes/retrieve";
 import { judge } from "./judge";
+import { persistRows } from "./persist";
 import { prisma } from "../clients/prisma";
 import type { EvaluatedRequirement, RunSummary, ReviewReason } from "../conformance-contract";
 import { attest } from "../clients/vidimus";
@@ -16,7 +17,7 @@ import { attest } from "../clients/vidimus";
 async function compileNode(s: ConformanceStateT): Promise<Partial<ConformanceStateT>> {
   const req = s.requirements[s.cursor];
   // assess + deterministic citation guards + verifier (see lib/graph/judge.ts)
-  const { a, v, blockedReason, citations } = await judge(req.requirement, s.standardId, s.citations);
+  const { a, v, blockedReason, citations, trace, rejectedQuoteText } = await judge(req.requirement, s.standardId, s.citations);
 
   // Vidimus: empirical (tranche-accuracy) confidence + signed attestation. When the
   // tranche is too small to calibrate, fall back to the raw LLM signal and route to review.
@@ -41,7 +42,8 @@ async function compileNode(s: ConformanceStateT): Promise<Partial<ConformanceSta
     citations, verdict: a.verdict, normative: a.normative, confidence,
     verifier: v, review, gapNote: a.gapNote, retrievalPath: s.path, attestation: att,
     model: process.env.OPENROUTER_MODEL ?? "", evaluatedAt: new Date().toISOString(),
-  };
+    trace, rejectedQuoteText,
+  } as EvaluatedRequirement & { rejectedQuoteText?: string };
   return { rows: [row], cursor: s.cursor + 1, citations: [], path: [] };
 }
 
@@ -78,17 +80,7 @@ export async function runConformance(input: RunInput): Promise<RunSummary> {
   })) as ConformanceStateT;
 
   const rows = final.rows;
-  if (rows.length) {
-    await prisma.evaluatedRequirement.createMany({
-      data: rows.map((r) => ({
-        id: r.id, runId: r.runId, orgId: input.orgId, requirement: r.requirement,
-        source: r.source as object, citations: r.citations as object, verdict: r.verdict,
-        normative: r.normative, confidence: r.confidence, verifier: r.verifier as object,
-        review: r.review as object, gapNote: r.gapNote, retrievalPath: r.retrievalPath as object, attestation: r.attestation as object,
-        model: r.model, evaluatedAt: new Date(r.evaluatedAt),
-      })),
-    });
-  }
+  await persistRows(prisma, input.orgId, rows);
 
   const summary: RunSummary = {
     total: rows.length,

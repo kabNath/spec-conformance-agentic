@@ -5,6 +5,7 @@ import { getClause } from "../clients/neo4j";
 import { assessorModel, verifierModel, llmText } from "../clients/openrouter";
 import { guardVerdict, gapVerifierDecision, modelFamily } from "../citation-check";
 import { governingNormative } from "../normative";
+import { buildTrace, type RequirementTrace } from "../trace";
 import { GAP_CHECK_SYSTEM, buildPassage, gapCheckUser, interpretGapCheck, type GapOutcome } from "../gap-check";
 import type { ReviewReason, VerifierResult } from "../conformance-contract";
 import { assess, type AssessOut } from "./nodes/assess";
@@ -20,6 +21,8 @@ export interface Judgement {
   citations: ConformanceStateT["citations"];  // citation carries `excerpt` once verified verbatim
   quote?: string;                // the assessor's exact quote (kept for the audit trail)
   gapCheck?: GapCheckRecord;     // GAP_GUARD=verifier: what the verifier was shown and answered
+  trace: RequirementTrace;       // persisted next to the row (lib/trace.ts): raw verdict, confidence, quote status, guard, verifier
+  rejectedQuoteText?: string;    // full text of a rejected quote: for the LOCAL table only (lib/graph/persist.ts)
 }
 
 export interface GapCheckRecord {
@@ -57,6 +60,7 @@ export async function judge(
   let a = await deps.assess(requirement, citations);
   const rawVerdict = a.verdict;
   const rawQuote = a.quote;
+  const rawConfidence = a.confidence;
   let blockedReason: ReviewReason | undefined;
   let cited = citations;
   let gapCheck: GapCheckRecord | undefined;
@@ -104,5 +108,7 @@ export async function judge(
     const d = gapVerifierDecision({ assessorModel: assessorModel(), verifierModel: verifierModel(), verifierAgrees: v.agrees });
     if (!d.ok) blockedReason = d.reason === "verifier_disagreement" ? undefined : d.reason; // disagreement is flagged by the usual rule
   }
-  return { a, v, rawVerdict, blockedReason, citations: cited, quote: rawQuote, gapCheck };
+  const { trace, rejectedQuoteText } = buildTrace({ rawVerdict, assessorConfidence: rawConfidence, quote: rawQuote, clauseText: full,
+    blockedReason, gapCheck, verifier: v, finalVerdict: a.verdict });
+  return { a, v, rawVerdict, blockedReason, citations: cited, quote: rawQuote, gapCheck, trace, rejectedQuoteText };
 }
