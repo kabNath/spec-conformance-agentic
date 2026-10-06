@@ -71,6 +71,8 @@ export interface Attestation {
   calibrationVersion: string;   // "none" when no calibration file was loaded
   nReference: number;           // reference predictions behind the calibration
   trancheN: number;             // reference predictions in this tranche
+  keyId: string;                // fingerprint of the signing key (signed); check it against trusted-keys.json
+  issuedAt: string;             // UTC time asserted by the signer (signed)
   contentHash: string;          // SHA-256 of canonical payload
   signature: string;            // Ed25519 signature of the content hash
   publicKey: string;            // verifier's public key (hex)

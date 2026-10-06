@@ -23,6 +23,7 @@ export async function attest(input: {
     calibrated: d.calibrated, calibratedConfidence: d.calibrated_confidence,
     ciLow: d.ci_low, ciHigh: d.ci_high, rawConfidence: d.raw_confidence,
     calibrationVersion: d.calibration_version, nReference: d.n_reference, trancheN: d.tranche_n,
+    keyId: d.key_id, issuedAt: d.issued_at,
     contentHash: d.content_hash, signature: d.signature, publicKey: d.public_key,
   };
 }

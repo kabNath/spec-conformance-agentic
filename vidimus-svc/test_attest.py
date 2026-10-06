@@ -12,6 +12,7 @@ from pathlib import Path
 
 # Ephemeral keys dir so the test never touches /data.
 os.environ.setdefault("VIDIMUS_KEYS_DIR", tempfile.mkdtemp(prefix="vidimus-keys-"))
+os.environ.setdefault("VIDIMUS_ALLOW_EPHEMERAL", "1")  # test keys dir starts empty
 # Make `import main` work regardless of the current working directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 

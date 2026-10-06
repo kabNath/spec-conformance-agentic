@@ -15,10 +15,16 @@ The library's high-level `attest()` is a *batch, store-backed, multi-judge*
 audit over a time window — a different shape from this per-requirement endpoint —
 so we compose its primitives directly rather than misusing that function.
 """
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 import hashlib
+import logging
 import os
+import threading
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -27,21 +33,83 @@ from vidimus.audit.signing import sign_hex
 from vidimus.audit.keys import KeyPair, generate_keypair, load_keypair, save_keypair
 
 import calibration
+from trust import TrustedKeysError, load_trusted, signed_payload  # noqa: F401  (signed_payload re-exported)
 
-app = FastAPI(title="vidimus-eval")
+log = logging.getLogger("vidimus-svc")
 
-# Persistent issuer keypair (PEM files named by fingerprint, written by vidimus).
-# Mount a secret dir in prod; generated on first run in dev.
+# --- Signing key -----------------------------------------------------------------------------------
+# Source, in order:  1. $VIDIMUS_SIGNING_KEY_PEM (secret env, for platforms without volumes)
+#                    2. a key file in $VIDIMUS_KEYS_DIR (mount a persistent volume there)
+#                    3. generate one — ONLY if VIDIMUS_ALLOW_EPHEMERAL=1 (local development).
+# Otherwise the service refuses to start: an attestation signed by a key that vanishes on restart
+# cannot be verified later. Key material is never logged; only the public key id is.
 _KEYS_DIR = Path(os.getenv("VIDIMUS_KEYS_DIR", "/data/vidimus-keys"))
+_TRUSTED_FILE = Path(os.getenv("VIDIMUS_TRUSTED_KEYS", str(Path(__file__).resolve().parent / "trusted-keys.json")))
+_key_lock = threading.Lock()
+_key: KeyPair | None = None
 
 
-def _keypair() -> KeyPair:
+class KeyConfigError(RuntimeError):
+    pass
+
+
+def _keypair_from_pem(pem: str) -> KeyPair:
+    if "\n" not in pem and "\\n" in pem:  # one-line env values carrying a literal backslash-n
+        pem = pem.replace("\\n", "\n")
+    try:
+        priv = serialization.load_pem_private_key(pem.encode(), password=None)
+        if not isinstance(priv, Ed25519PrivateKey):
+            raise ValueError("not an Ed25519 key")
+    except Exception:  # deliberately generic: never echo the value or the parser's details
+        raise KeyConfigError(
+            "VIDIMUS_SIGNING_KEY_PEM is set but is not a valid unencrypted Ed25519 private key in PEM format"
+        ) from None
+    pub = priv.public_key()
+    raw = pub.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    return KeyPair(private_key=priv, public_key=pub, fingerprint=hashlib.sha256(raw).hexdigest())
+
+
+def _load_signing_key() -> tuple[KeyPair, str]:
+    pem = os.getenv("VIDIMUS_SIGNING_KEY_PEM")
+    if pem:
+        return _keypair_from_pem(pem), "env VIDIMUS_SIGNING_KEY_PEM"
     existing = sorted(_KEYS_DIR.glob("*.priv.pem"))
     if existing:
-        return load_keypair(existing[0])
-    kp = generate_keypair()
-    save_keypair(kp, _KEYS_DIR)
-    return kp
+        return load_keypair(existing[0]), f"file in {_KEYS_DIR}"
+    if os.getenv("VIDIMUS_ALLOW_EPHEMERAL") == "1":
+        kp = generate_keypair()
+        save_keypair(kp, _KEYS_DIR)
+        return kp, f"generated (VIDIMUS_ALLOW_EPHEMERAL=1) and saved in {_KEYS_DIR}"
+    raise KeyConfigError(
+        f"No signing key found in {_KEYS_DIR} and VIDIMUS_SIGNING_KEY_PEM is not set. Refusing to start: "
+        "mount a persistent volume holding the key at that path, or provide the key through the "
+        "VIDIMUS_SIGNING_KEY_PEM secret. For LOCAL DEVELOPMENT ONLY, set VIDIMUS_ALLOW_EPHEMERAL=1 to "
+        "generate one on first start."
+    )
+
+
+def get_signing_key() -> KeyPair:
+    global _key
+    with _key_lock:
+        if _key is None:
+            _key, source = _load_signing_key()
+            log.warning("signing key loaded: key_id=%s source=%s", _key.fingerprint, source)
+            try:
+                if _key.fingerprint not in {k["key_id"] for k in load_trusted(_TRUSTED_FILE)}:
+                    log.warning("key_id %s is NOT listed in trusted-keys.json: verifiers pinned to that file "
+                                "will reject its attestations", _key.fingerprint)
+            except TrustedKeysError as e:
+                log.warning("trusted-keys.json problem: %s", e)
+        return _key
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    get_signing_key()  # fail fast, at startup, with a clear message
+    yield
+
+
+app = FastAPI(title="vidimus-eval", lifespan=lifespan)
 
 
 class AttestIn(BaseModel):
@@ -64,6 +132,8 @@ class AttestOut(BaseModel):
     calibration_version: str
     n_reference: int
     tranche_n: int
+    key_id: str          # fingerprint of the signing key; part of the signed payload
+    issued_at: str       # UTC, part of the signed payload (used for key-rotation windows)
     content_hash: str
     signature: str
     public_key: str
@@ -93,41 +163,29 @@ def _calibrate(raw: float) -> dict:
     }
 
 
-def signed_payload(requirement: str, verdict: str, d: dict, citations: list[dict]) -> dict:
-    """The exact object that is canonicalised, hashed and signed.
-
-    Everything the response claims about confidence is in here, together with
-    the calibration it came from, so it cannot be altered or re-attributed.
-    """
-    return {
-        "requirement": requirement,
-        "verdict": verdict,
-        "calibrated": d["calibrated"],
-        "calibrated_confidence": d["calibrated_confidence"],
-        "ci_low": d["ci_low"],
-        "ci_high": d["ci_high"],
-        "raw_confidence": d["raw_confidence"],
-        "calibration_version": d["calibration_version"],
-        "n_reference": d["n_reference"],
-        "tranche_n": d["tranche_n"],
-        "citations": [c.get("display") for c in citations],
-    }
-
-
 @app.post("/attest", response_model=AttestOut)
 def attest(x: AttestIn) -> AttestOut:
     raw = calibration.raw_confidence(x.assessor_confidence, x.verifier_confidence, x.verifier_agrees)
     d = _calibrate(raw)
     d["raw_confidence"] = round(raw, 4)
+    kp = get_signing_key()
+    d["key_id"] = kp.fingerprint
+    d["issued_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     # Tamper-evident attestation: canonical JSON (RFC 8785) -> SHA-256 ->
     # Ed25519 signature, all via vidimus primitives.
     payload = signed_payload(x.requirement, x.verdict, d, x.citations)
     content_hash = hashlib.sha256(canonicalize(payload)).hexdigest()
-    kp = _keypair()
     signature = sign_hex(kp.private_key, content_hash.encode())
 
     return AttestOut(**d, content_hash=content_hash, signature=signature, public_key=kp.public_key_hex)
+
+
+@app.get("/pubkey")
+def pubkey() -> dict:
+    """Public identity of the signing key (pin this in verifiers / trusted-keys.json)."""
+    kp = get_signing_key()
+    return {"key_id": kp.fingerprint, "public_key": kp.public_key_hex, "algorithm": "Ed25519"}
 
 
 @app.get("/health")

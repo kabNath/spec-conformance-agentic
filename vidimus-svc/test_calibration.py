@@ -11,6 +11,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 os.environ.setdefault("VIDIMUS_KEYS_DIR", tempfile.mkdtemp(prefix="vidimus-keys-"))
+os.environ.setdefault("VIDIMUS_ALLOW_EPHEMERAL", "1")  # test keys dir starts empty
 
 import calibration as cal  # noqa: E402
 

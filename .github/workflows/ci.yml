@@ -35,11 +35,16 @@ jobs:
         run: |
           echo "vidimus ref: ${{ steps.vref.outputs.ref }}"
           grep -v '^vidimus' vidimus-svc/requirements.txt > /tmp/svc-requirements.txt
-          pip install -r /tmp/svc-requirements.txt httpx
+          grep -v "^-r" vidimus-svc/requirements-dev.txt > /tmp/svc-dev.txt
+          pip install -r /tmp/svc-requirements.txt -r /tmp/svc-dev.txt
           pip install "vidimus @ git+https://github.com/kabNath/vidimus.git@${{ steps.vref.outputs.ref }}"
       - name: Test /attest — HTTP 200 + valid Ed25519 signature
         run: python vidimus-svc/test_attest.py
       - name: Test calibration (Wilson, tranches, signed fields, reproducibility)
         run: python vidimus-svc/test_calibration.py
-      - name: Build the sidecar image (catches Dockerfile / dependency breakage)
+      - name: Test signing key (startup policy, /pubkey, rotation)
+        run: python vidimus-svc/test_keys.py
+      - name: Test inside the image (Dockerfile "test" stage runs test_attest / test_calibration / test_keys)
+        run: docker build -f vidimus-svc/Dockerfile --target test -t vidimus-svc:test .
+      - name: Build the runtime image (catches Dockerfile / dependency breakage)
         run: docker build -f vidimus-svc/Dockerfile -t vidimus-svc:ci .
