@@ -8,7 +8,7 @@
     "allow_fallbacks": false,
     "data_collection": "deny"
   },
-  "total_cost_usd": 0,
+  "total_cost_usd": null,
   "calls": {
     "1|R10|gap|quote": {
       "agrees": true,
@@ -50,5 +50,6 @@
       "agrees": true,
       "confidence": 0.99
     }
-  }
+  },
+  "cost_note": "Cost and provider lookups returned 404 (not measured); estimated 0.01-0.02 USD for 10 calls."
 }
