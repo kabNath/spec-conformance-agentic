@@ -1,0 +1,47 @@
+{
+  "id": "doc-09",
+  "document": "doc-09.txt",
+  "sentences": [
+    "1) The terminal starts timer T901 when a SessionRequest message is sent.",
+    "2) The terminal stops timer T901 when a SessionAccept message is received, and stores the received parameters.",
+    "3) The terminal applies SessionUpdate parameters in the order received.",
+    "4) The terminal answers each SessionUpdate message with a SessionUpdateComplete message.",
+    "5) The terminal must not release the session before it has answered.",
+    "6) The list above is not exhaustive."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall start timer T901 when a SessionRequest message is sent."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "The terminal shall stop timer T901 when a SessionAccept message is received."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 2,
+      "text": "The terminal shall store the received parameters when a SessionAccept message is received."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 3,
+      "text": "The terminal shall apply SessionUpdate parameters in the order received."
+    },
+    {
+      "id": "r5",
+      "source_sentence": 4,
+      "text": "The terminal shall answer each SessionUpdate message with a SessionUpdateComplete message."
+    },
+    {
+      "id": "r6",
+      "source_sentence": 5,
+      "text": "The terminal shall not release the session before it has answered."
+    }
+  ],
+  "non_requirement_sentences": [
+    6
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "doc-01",
+  "document": "doc-01.txt",
+  "sentences": [
+    "The Borealis terminal opens a session by sending a SessionRequest message and starting timer T901.",
+    "It stops timer T901 as soon as a SessionAccept message arrives.",
+    "The terminal was designed for low power consumption.",
+    "If no SessionAccept message arrives before timer T901 expires, the terminal repeats the SessionRequest message."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "When opening a session, the terminal shall send a SessionRequest message."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 1,
+      "text": "When opening a session, the terminal shall start timer T901."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 2,
+      "text": "The terminal shall stop timer T901 when a SessionAccept message arrives."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 4,
+      "text": "If timer T901 expires before a SessionAccept message arrives, the terminal shall repeat the SessionRequest message."
+    }
+  ],
+  "non_requirement_sentences": [
+    3
+  ]
+}

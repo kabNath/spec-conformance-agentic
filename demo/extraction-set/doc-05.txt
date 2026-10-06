@@ -1,0 +1,3 @@
+Power-on behaviour and logging
+
+At power-on the terminal checks its stored profile. If the profile is missing, the terminal creates a new random session value and starts a session. If the profile is valid, the terminal reuses the stored session value. The terminal logs every session event in a local file. The log file is rotated daily. Rotation was introduced after customer feedback.

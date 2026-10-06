@@ -1,0 +1,32 @@
+{
+  "id": "doc-06",
+  "document": "doc-06.txt",
+  "sentences": [
+    "The Echo terminal sends a SessionRequest message carrying a random session value and waits for a SessionAccept message.",
+    "While waiting, it does not send any other message on CCH1.",
+    "Waiting lasts at most the duration of timer T901."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall send a SessionRequest message carrying a random session value."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 1,
+      "text": "The terminal shall wait for a SessionAccept message after sending the SessionRequest message."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 2,
+      "text": "While waiting for a SessionAccept message, the terminal shall not send any other message on CCH1."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 3,
+      "text": "The terminal shall wait for a SessionAccept message for at most the duration of timer T901."
+    }
+  ],
+  "non_requirement_sentences": []
+}

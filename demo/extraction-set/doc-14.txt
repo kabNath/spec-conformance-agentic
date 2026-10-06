@@ -1,0 +1,3 @@
+Hotel terminal — parameter sets
+
+The Hotel terminal stores up to eight sets of session parameters. The oldest set is overwritten when a ninth set arrives. Sets are never read while a SessionUpdate message is being applied. Each stored set carries the random session value of its session. Hotel was launched in spring.

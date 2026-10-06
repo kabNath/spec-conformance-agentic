@@ -1,0 +1,3 @@
+Releasing a session
+
+The terminal releases the session when the user presses the stop button. Before releasing, it answers any pending SessionUpdate message with a SessionUpdateComplete message. After releasing, it deletes the stored parameters and turns off CCH1. The stop button is red. Releasing takes less than two seconds.

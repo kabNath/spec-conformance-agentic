@@ -1,0 +1,3 @@
+Cobalt terminal — updates
+
+The Cobalt terminal applies the parameters of every SessionUpdate message in the order received. It never applies two parameters at the same time. When all parameters have been applied, it sends a SessionUpdateComplete message. When a parameter cannot be applied, it starts the recovery steps and does not send a SessionUpdateComplete message. This behaviour was validated in the lab last year.

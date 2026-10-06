@@ -1,0 +1,36 @@
+{
+  "id": "doc-14",
+  "document": "doc-14.txt",
+  "sentences": [
+    "The Hotel terminal stores up to eight sets of session parameters.",
+    "The oldest set is overwritten when a ninth set arrives.",
+    "Sets are never read while a SessionUpdate message is being applied.",
+    "Each stored set carries the random session value of its session.",
+    "Hotel was launched in spring."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall store up to eight sets of session parameters."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "The terminal shall overwrite the oldest set when a ninth set arrives."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 3,
+      "text": "The terminal shall not read the sets while a SessionUpdate message is being applied."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 4,
+      "text": "Each stored set shall carry the random session value of its session."
+    }
+  ],
+  "non_requirement_sentences": [
+    5
+  ]
+}

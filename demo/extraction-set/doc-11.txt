@@ -1,0 +1,3 @@
+Retries and idle state
+
+When timer T901 expires, the terminal sends the SessionRequest message again at most three times. After the third failure, it enters the idle state and informs the user. In the idle state it sends no message on CCH1. Idle is the default state after power-on. Our engineers like this design.

@@ -1,0 +1,3 @@
+Delta terminal — channels
+
+Sessions on the Delta terminal use the default channel parameters until a SessionUpdate message is received. The control channel CCH1 is opened during session set-up. The terminal never closes CCH1 while a session is active. The marketing name of the product is Delta One.

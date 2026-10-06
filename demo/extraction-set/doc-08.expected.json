@@ -1,0 +1,30 @@
+{
+  "id": "doc-08",
+  "document": "doc-08.txt",
+  "sentences": [
+    "The Foxtrot terminal supports one session at a time.",
+    "A second SessionRequest message received while a session is active is ignored.",
+    "The terminal tells the user when a request is ignored by blinking an amber light.",
+    "Foxtrot is the sixth model of the family."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall support one session at a time."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "The terminal shall ignore a second SessionRequest message received while a session is active."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 3,
+      "text": "The terminal shall blink an amber light when a request is ignored."
+    }
+  ],
+  "non_requirement_sentences": [
+    4
+  ]
+}

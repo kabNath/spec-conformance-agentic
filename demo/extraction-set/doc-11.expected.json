@@ -1,0 +1,41 @@
+{
+  "id": "doc-11",
+  "document": "doc-11.txt",
+  "sentences": [
+    "When timer T901 expires, the terminal sends the SessionRequest message again at most three times.",
+    "After the third failure, it enters the idle state and informs the user.",
+    "In the idle state it sends no message on CCH1.",
+    "Idle is the default state after power-on.",
+    "Our engineers like this design."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "When timer T901 expires, the terminal shall send the SessionRequest message again, at most three times."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "After the third failure, the terminal shall enter the idle state."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 2,
+      "text": "After the third failure, the terminal shall inform the user."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 3,
+      "text": "In the idle state, the terminal shall send no message on CCH1."
+    },
+    {
+      "id": "r5",
+      "source_sentence": 4,
+      "text": "After power-on, the terminal shall be in the idle state."
+    }
+  ],
+  "non_requirement_sentences": [
+    5
+  ]
+}

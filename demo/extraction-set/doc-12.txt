@@ -1,0 +1,3 @@
+Golf terminal — display
+
+The Golf terminal reports its session state on the front display. The display shows the word ACTIVE during an active session and the word IDLE otherwise. The display is large.

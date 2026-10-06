@@ -1,0 +1,47 @@
+{
+  "id": "doc-05",
+  "document": "doc-05.txt",
+  "sentences": [
+    "At power-on the terminal checks its stored profile.",
+    "If the profile is missing, the terminal creates a new random session value and starts a session.",
+    "If the profile is valid, the terminal reuses the stored session value.",
+    "The terminal logs every session event in a local file.",
+    "The log file is rotated daily.",
+    "Rotation was introduced after customer feedback."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "At power-on, the terminal shall check its stored profile."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "If the profile is missing, the terminal shall create a new random session value."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 2,
+      "text": "If the profile is missing, the terminal shall start a session."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 3,
+      "text": "If the profile is valid, the terminal shall reuse the stored session value."
+    },
+    {
+      "id": "r5",
+      "source_sentence": 4,
+      "text": "The terminal shall log every session event in a local file."
+    },
+    {
+      "id": "r6",
+      "source_sentence": 5,
+      "text": "The terminal shall rotate the log file daily."
+    }
+  ],
+  "non_requirement_sentences": [
+    6
+  ]
+}

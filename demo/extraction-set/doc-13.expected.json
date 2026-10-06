@@ -1,0 +1,35 @@
+{
+  "id": "doc-13",
+  "document": "doc-13.txt",
+  "sentences": [
+    "Recovery steps start automatically when a SessionUpdate parameter cannot be applied.",
+    "They are limited to ten seconds.",
+    "If recovery fails, the terminal releases the session and sends a SessionRequest message after one minute.",
+    "Recovery was the hardest part to implement."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall start the recovery steps automatically when a SessionUpdate parameter cannot be applied."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "The recovery steps shall be limited to ten seconds."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 3,
+      "text": "If recovery fails, the terminal shall release the session."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 3,
+      "text": "If recovery fails, the terminal shall send a SessionRequest message after one minute."
+    }
+  ],
+  "non_requirement_sentences": [
+    4
+  ]
+}
