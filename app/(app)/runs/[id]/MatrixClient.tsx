@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import ConfidencePanel from "@/components/ConfidencePanel";
 import {
   displayVerdict, type ConformanceRun, type EvaluatedRequirement, type DisplayVerdict,
 } from "@/lib/conformance-contract";
@@ -108,17 +109,7 @@ function Detail({ r }: { r: EvaluatedRequirement }) {
           {r.verifier.agrees ? "agrees" : "disagrees"} — {r.verifier.note}
         </div>
 
-        <div>
-          <div className="flex items-center justify-between text-xs text-mut mb-1">
-            <span>citation confidence</span><span className="text-ink font-semibold">{Math.round(r.confidence * 100)}%</span>
-          </div>
-          <div className="h-1.5 bg-tint rounded overflow-hidden">
-            <div className="h-full bg-accent" style={{ width: `${Math.round(r.confidence * 100)}%` }} />
-          </div>
-          {r.review.required && (
-            <div className="meta-mono text-accent-dark mt-2">⚑ flagged for human review — {r.review.reason}</div>
-          )}
-        </div>
+        <ConfidencePanel r={r} />
 
         {r.retrievalPath && r.retrievalPath.length > 0 && (
           <div className="meta-mono">audit path: {r.retrievalPath.join(" → ")}</div>
