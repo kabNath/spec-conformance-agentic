@@ -3,4 +3,5 @@ uvicorn[standard]>=0.29
 # Published trust-layer library — provides the real calibrated-uncertainty and
 # Ed25519 attestation primitives this service composes (bootstrap_ci,
 # canonicalize, sign_hex, KeyPair). Brings pydantic + cryptography + numpy.
-vidimus @ git+https://github.com/kabNath/vidimus.git
+# Pinned to a public commit (main at fc4e4ab, 0.1.0a1); bump deliberately.
+vidimus @ git+https://github.com/kabNath/vidimus.git@fc4e4abe4540cf4fabe8caabc35651b44b940243

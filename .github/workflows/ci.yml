@@ -41,3 +41,5 @@ jobs:
         run: python vidimus-svc/test_attest.py
       - name: Test calibration (Wilson, tranches, signed fields, reproducibility)
         run: python vidimus-svc/test_calibration.py
+      - name: Build the sidecar image (catches Dockerfile / dependency breakage)
+        run: docker build -f vidimus-svc/Dockerfile -t vidimus-svc:ci .
