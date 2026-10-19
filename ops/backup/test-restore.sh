@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Backup → restore round trip against a throw-away Postgres and an S3-compatible store (an S3 API fake).
-#   ops/backup/test-restore.sh        (needs Docker; pulls postgres:16-alpine and adobe/s3mock)
+#   ops/backup/test-restore.sh        (needs Docker; pulls postgres:16-alpine and python:3.12-slim (moto, installed with pip))
 # Proves: a restored database has the same rows and indexes (incl. the partial unique index) as the source; an encrypted
 # dump cannot be restored without the key; a corrupted object is refused; old backups are pruned; a non-empty target is refused.
 set -euo pipefail
@@ -15,11 +15,11 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 docker network create "$ID" >/dev/null
 docker build -q -t sca-backup-tools . >/dev/null
 docker run -d --name "$ID-db" --network "$ID" -e POSTGRES_PASSWORD=pw -e POSTGRES_DB=conformance postgres:16-alpine >/dev/null
-docker run -d --name "$ID-s3" --network "$ID" adobe/s3mock >/dev/null   # an S3 API fake (MinIO no longer publishes a free image)
+docker run -d --name "$ID-s3" --network "$ID" python:3.12-slim sh -c "pip install -q 'moto[server]' && exec moto_server -H 0.0.0.0 -p 5000" >/dev/null   # an S3 API fake (moto); MinIO no longer publishes a free image
 docker run -d --name "$ID-tools" --network "$ID" --user root --workdir /work --entrypoint sleep \
   -e PGHOST="$ID-db" -e PGUSER=postgres -e PGPASSWORD=pw -e PGDATABASE=conformance \
   -e BACKUP_S3_BUCKET=test-backups -e AWS_ACCESS_KEY_ID=testkey -e AWS_SECRET_ACCESS_KEY=testsecret123 \
-  -e AWS_ENDPOINT_URL_S3="http://$ID-s3:9090" -e AWS_REGION=us-east-1 -e AWS_EC2_METADATA_DISABLED=true \
+  -e AWS_ENDPOINT_URL_S3="http://$ID-s3:5000" -e AWS_REGION=us-east-1 -e AWS_EC2_METADATA_DISABLED=true \
   sca-backup-tools infinity >/dev/null
 for i in $(seq 1 60); do docker exec "$ID-db" pg_isready -U postgres -d conformance >/dev/null 2>&1 && break; sleep 1; done
 docker exec "$ID-db" pg_isready -U postgres -d conformance >/dev/null || fail "source Postgres did not come up"
@@ -36,7 +36,7 @@ CREATE TABLE "_prisma_migrations" (id varchar(36) PRIMARY KEY, checksum varchar(
 INSERT INTO "_prisma_migrations"(id, checksum, finished_at, migration_name, applied_steps_count) VALUES ('m1','x',now(),'init',1),('m2','y',now(),'mcp_api_keys',1);
 SQL
 T psql -q -v ON_ERROR_STOP=1 -f /work/seed.sql
-for i in $(seq 1 60); do T aws s3 mb s3://test-backups >/dev/null 2>&1 && break; T aws s3 ls s3://test-backups >/dev/null 2>&1 && break; sleep 2; done
+for i in $(seq 1 90); do T aws s3 mb s3://test-backups >/dev/null 2>&1 && break; T aws s3 ls s3://test-backups >/dev/null 2>&1 && break; sleep 2; done
 T aws s3 ls s3://test-backups >/dev/null || fail "the S3 fake did not come up"
 T bash -c 'age-keygen -o /tmp/age.key 2>/tmp/age.pub; grep -o "age1[a-z0-9]*" /tmp/age.pub > /tmp/recipient'
 
