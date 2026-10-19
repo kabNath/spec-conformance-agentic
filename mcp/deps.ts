@@ -22,6 +22,10 @@ export interface CallSignInput {
 }
 export interface CallRow extends Omit<CallSignInput, "org_id_sha256"> {
   orgId: string; apiKeyId: string; signed: Record<string, unknown> | null;
+  channel: "mcp" | "http";
+  llmCalls: number; inputTokens: number; outputTokens: number;
+  /** null unless every model used has a price in MODEL_PRICES_JSON (lib/usage.ts). */
+  costUsd: number | null;
 }
 
 export interface McpDeps {

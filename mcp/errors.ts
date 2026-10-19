@@ -6,6 +6,7 @@ export type ErrorCode =
   | "clause_not_found"      // the clause hint is not in the graph
   | "verdict_not_found"     // unknown id, or it belongs to another organisation (indistinguishable on purpose)
   | "no_attestation"        // the stored verdict has no signed attestation
+  | "rate_limited"          // too many requests for this API key; see Retry-After
   | "upstream_unavailable"  // sidecar / model provider / graph / vector store unreachable
   | "audit_failed"          // the tool-call record could not be stored: the call fails closed
   | "internal";

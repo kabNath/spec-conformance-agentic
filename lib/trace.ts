@@ -23,6 +23,8 @@ export interface RequirementTrace {
   gapCheck?: { outcome: string; sameSubject: boolean | null; contradicts: boolean | null };
   verifier: { agrees: boolean; confidence: number; note: string };
   finalVerdict: Verdict;
+  /** Request that produced this verdict (X-Request-Id / MCP call); absent for web-pipeline runs. */
+  requestId?: string;
 }
 
 export interface TraceInput {

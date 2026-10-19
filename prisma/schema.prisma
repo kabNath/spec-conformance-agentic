@@ -111,7 +111,7 @@ model ApiKey {
   @@index([orgId])
 }
 
-/// One row per MCP tool call: hashes of input and output (never the content), outcome, latency, and the
+/// One row per MCP tool call or REST /api/v1 request: hashes of input and output (never the content), outcome, latency, and the
 /// Ed25519-signed record returned by the sidecar's /sign-call (null if the sidecar was unreachable).
 model McpToolCall {
   id           String   @id @default(uuid())
@@ -126,6 +126,13 @@ model McpToolCall {
   latencyMs    Int
   verdictId    String?
   signed       Json?
+  /// "mcp" (tool call) or "http" (REST /api/v1); `tool` holds the tool name or "POST /api/v1/check".
+  channel      String   @default("mcp")
+  llmCalls     Int?
+  inputTokens  Int?
+  outputTokens Int?
+  /// Estimated from MODEL_PRICES_JSON; null when any model used has no configured price (never guessed).
+  costUsd      Float?
   createdAt    DateTime @default(now())
 
   @@index([orgId, createdAt])

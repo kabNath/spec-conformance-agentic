@@ -1,0 +1,183 @@
+openapi: 3.1.0
+info:
+  title: Spec Conformance Agent API
+  version: 0.1.0
+  description: |
+    Check implementation requirements against 3GPP/O-RAN clauses. Every verdict cites a clause and carries an
+    Ed25519-signed attestation; every call leaves a signed tool-call record (`call` in each response).
+    `abstained: true` means the system did not commit and a human must review the item; this is frequent by design
+    (see EVAL.md for measured rates). The same operations are available as MCP tools (docs/INTEGRATION.md).
+servers:
+  - url: https://YOUR-HOST/api/v1
+security:
+  - bearerKey: []
+components:
+  securitySchemes:
+    bearerKey:
+      type: http
+      scheme: bearer
+      description: API key created with `npm run api-key:create` (one active key per organisation).
+  parameters:
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      schema: { type: string, pattern: '^[A-Za-z0-9._-]{8,64}$' }
+      description: Echoed in the response, stored with the call record and in the verdict's trace. Generated if absent or malformed.
+  headers:
+    RequestId: { schema: { type: string } }
+    RateLimitLimit: { schema: { type: integer }, description: Requests allowed per minute and key (RATE_LIMIT_PER_MIN). }
+    RateLimitRemaining: { schema: { type: integer } }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, enum: [unauthorized, invalid_input, spec_not_found, clause_not_found, verdict_not_found, no_attestation, rate_limited, upstream_unavailable, audit_failed, internal] }
+            message: { type: string }
+            details: { type: object }
+        call: { $ref: '#/components/schemas/Call' }
+    Call:
+      type: object
+      required: [request_id, record_id, signed]
+      properties:
+        request_id: { type: string }
+        record_id: { type: string }
+        signed: { type: boolean, description: "false when the signing sidecar was unreachable; the record exists without signature" }
+    Citation:
+      type: object
+      required: [spec, version, release, clause, display, text, normative]
+      properties:
+        spec: { type: string }
+        version: { type: string }
+        release: { type: string }
+        clause: { type: string }
+        clause_title: { type: [string, 'null'] }
+        display: { type: string }
+        text: { type: string }
+        normative: { type: string }
+    Verdict:
+      type: object
+      required: [verdict_id, requirement, verdict, abstained, review, confidence, citations, verifier, attestation, evaluated_at, call]
+      properties:
+        verdict_id: { type: string, format: uuid }
+        requirement: { type: string }
+        verdict: { type: string, enum: [conformant, gap, insufficient_evidence] }
+        abstained: { type: boolean }
+        review:
+          type: object
+          properties: { required: { type: boolean }, reason: { type: [string, 'null'] } }
+        confidence: { type: number }
+        citations: { type: array, items: { $ref: '#/components/schemas/Citation' } }
+        verifier: { type: object, properties: { agrees: { type: boolean }, confidence: { type: number }, note: { type: string } } }
+        attestation:
+          type: [object, 'null']
+          properties:
+            key_id: { type: string }
+            issued_at: { type: string }
+            content_hash: { type: string }
+            signature: { type: string }
+            public_key: { type: string }
+            calibrated: { type: boolean }
+            calibrated_confidence: { type: [number, 'null'] }
+            ci_low: { type: [number, 'null'] }
+            ci_high: { type: [number, 'null'] }
+            raw_confidence: { type: number }
+            calibration_version: { type: string }
+        evaluated_at: { type: string }
+        call: { $ref: '#/components/schemas/Call' }
+  responses:
+    Err:
+      description: Error (see `error.code`). 429 carries Retry-After.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+paths:
+  /check:
+    post:
+      summary: Check ONE requirement against a specification
+      description: |
+        With `Accept: text/event-stream` the response is a stream: `accepted`, `step` (retrieval, assessment after the
+        guards, attestation), then `final` (the Verdict) or `error`. A comment line every 10 s keeps the connection open.
+        Without it the response is the final JSON.
+      parameters: [{ $ref: '#/components/parameters/RequestId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requirement_text, spec_id]
+              properties:
+                requirement_text: { type: string, minLength: 10, maxLength: 4000 }
+                spec_id: { type: string, pattern: '^[a-z0-9]+$' }
+                clause: { type: string }
+            example:
+              requirement_text: The terminal starts timer T901 and sends a SessionRequest message when it opens a link session.
+              spec_id: lcp100
+      responses:
+        '200':
+          description: The verdict
+          headers: { X-Request-Id: { $ref: '#/components/headers/RequestId' }, RateLimit-Limit: { $ref: '#/components/headers/RateLimitLimit' }, RateLimit-Remaining: { $ref: '#/components/headers/RateLimitRemaining' } }
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Verdict' } }
+            text/event-stream:
+              schema: { type: string }
+              example: |
+                event: accepted
+                data: {"request_id":"0b7e6a4e-2c1d-4a52-9f0e-3a6c1d9e8f10"}
+
+                event: step
+                data: {"name":"retrieval","clauses":["5.3.3"],"path":[]}
+
+                event: final
+                data: {"verdict_id":"…","verdict":"conformant","abstained":false,"call":{"request_id":"…","record_id":"…","signed":true}}
+        default: { $ref: '#/components/responses/Err' }
+  /search:
+    post:
+      summary: Search the clauses of an ingested specification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query: { type: string, minLength: 3, maxLength: 1000 }
+                spec_id: { type: string }
+                top_k: { type: integer, minimum: 1, maximum: 10, default: 5 }
+            example: { query: session set-up, spec_id: lcp100, top_k: 3 }
+      responses:
+        '200': { description: Cited hits, content: { application/json: { schema: { type: object, properties: { hits: { type: array, items: { $ref: '#/components/schemas/Citation' } }, call: { $ref: '#/components/schemas/Call' } } } } } }
+        default: { $ref: '#/components/responses/Err' }
+  /extract:
+    post:
+      summary: Extract atomic requirements from a document
+      description: Reads only the first 12,000 characters of `document_text`; `truncated` says whether anything was ignored. Fixed output shape.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [document_text], properties: { document_text: { type: string, minLength: 20, maxLength: 500000 } } }
+            example: { document_text: "The terminal starts timer T901 on set-up.\nThe terminal stops timer T901 on SessionAccept." }
+      responses:
+        '200': { description: Requirements, content: { application/json: { schema: { type: object, properties: { requirements: { type: array, items: { type: object } }, chars_read: { type: integer }, truncated: { type: boolean }, call: { $ref: '#/components/schemas/Call' } } } } } }
+        default: { $ref: '#/components/responses/Err' }
+  /verdicts/{id}:
+    get:
+      summary: Read a stored verdict of your organisation
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The verdict, content: { application/json: { schema: { $ref: '#/components/schemas/Verdict' } } } }
+        default: { $ref: '#/components/responses/Err' }
+  /verdicts/{id}/verify:
+    post:
+      summary: Verify the Ed25519 signature of a stored verdict
+      description: "`integrity_valid` and `signer_trusted` are separate: a valid signature from an unlisted key proves integrity, not identity."
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: Verification result, content: { application/json: { schema: { type: object, properties: { verdict_id: { type: string }, integrity_valid: { type: boolean }, signer_trusted: { type: boolean }, key_id: { type: [string, 'null'] }, issues: { type: array, items: { type: string } }, trust_issues: { type: array, items: { type: string } }, warnings: { type: array, items: { type: string } }, call: { $ref: '#/components/schemas/Call' } } } } } }
+        default: { $ref: '#/components/responses/Err' }

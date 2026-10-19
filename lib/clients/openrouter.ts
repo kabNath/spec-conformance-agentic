@@ -2,6 +2,7 @@
 // OpenRouter's OpenAI-compatible endpoint, so LangGraph nodes get a standard LLM.
 import { ChatOpenAI } from "@langchain/openai";
 import { extractJSON } from "../json";
+import { addUsage } from "../usage";
 
 // Lazily construct the client on first use, NOT at import time — so `next build`
 // can collect page data (which imports the route modules) without
@@ -67,6 +68,7 @@ async function callText(system: string, user: string, model?: string, role = "as
   callLog.push({ id: (res as unknown as { id?: string }).id, model: model ?? assessorModel(), role });
   const u = (res as unknown as { usage_metadata?: { input_tokens?: number; output_tokens?: number } }).usage_metadata;
   if (u) { llmStats.inputTokens += u.input_tokens ?? 0; llmStats.outputTokens += u.output_tokens ?? 0; }
+  addUsage(model ?? assessorModel(), u?.input_tokens ?? 0, u?.output_tokens ?? 0); // per-request meter (lib/usage.ts); no-op outside a metered request
   return String(res.content);
 }
 
