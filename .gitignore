@@ -46,3 +46,6 @@ eval/results-v2-*.json
 
 # Raw v1 result files contain spec text: only their sanitised *.public.json are committed
 eval/results-run[0-9].json
+
+# clerk configuration (can include secrets)
+/.clerk/

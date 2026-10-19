@@ -13,7 +13,11 @@
     "eval:regression": "GAP_GUARD=verifier OPENROUTER_VERIFIER_MODEL=google/gemini-3.8-flash OPENROUTER_VERIFIER_PROVIDER=google-vertex tsx --env-file=.env.local scripts/eval.ts --ids-file eval/frozen-subset.json --out eval/results-v2-frozen-check.json && tsx scripts/eval-regression.ts eval/results-v2-frozen-check.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "ingest": "tsx --env-file=.env.local scripts/ingest.ts"
+    "ingest": "tsx --env-file=.env.local scripts/ingest.ts",
+    "test": "vitest run",
+    "mcp": "tsx mcp/main.ts",
+    "api-key:create": "tsx --env-file=.env.local scripts/create-api-key.ts",
+    "lint": "eslint mcp tests examples/mcp lib/evaluate-requirement.ts scripts/create-api-key.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.0.0",
@@ -49,5 +53,8 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.71.2",
     "vitest": "^3.2.7"
+  },
+  "bin": {
+    "conformance-mcp": "./bin/conformance-mcp.mjs"
   }
 }
