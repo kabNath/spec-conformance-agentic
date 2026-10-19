@@ -57,7 +57,7 @@ Persistence: Prisma/PostgreSQL (matrix rows), Cloudinary (blobs), Vidimus (attes
     npm run ingest -- <orgId> ts38331 "TS 38.331" 18.3.0 Rel-18 examples/ts38331-extrait.txt
     npm run dev                          # http://localhost:3000
 
-## Comportement attendu (expected behaviour)
+## Expected behaviour
 
 What you will see on a run, and why. None of it is a bug; the numbers come from [EVAL.md](EVAL.md) (v2, two passes over the 40-requirement gold set, 95 % Wilson intervals per pass; these requirements were already seen while the guards were designed, see its "Limites" section).
 
@@ -101,21 +101,22 @@ four-batch protocol; the same model is never both examinee and examiner. Scored 
 [`scripts/eval.ts`](scripts/eval.ts). Full methodology, failure analysis, and a two-run
 stability study are in **[EVAL.md](EVAL.md)**.
 
-Headline numbers (run 1 of 2, `claude-sonnet-4.6`, temp 0, cost $0.52), reported honestly:
+Headline numbers, v1 vs v2 (`claude-sonnet-4.6` assessor, temp 0; two passes each over the same 40 items, so the passes are not independent; full table with 95 % Wilson intervals in [EVAL.md](EVAL.md#headline-v1-vs-v2)):
 
-| result | value | reading |
-|---|--:|---|
-| Verdict accuracy (N=40, incl. 2 system errors) | **67.5%** | 71.1% over the 38 verdict-producing items |
-| **Verdict accuracy given the right clause** | **92.6%** | judgement is strong… |
-| Verdict accuracy given the wrong clause | **18.2%** | …**retrieval is the bottleneck**, not reasoning |
-| **Committed profile** | **87.5% @ 63% coverage** | trustworthy *when it answers*; abstains on 37% |
-| Silent error rate (wrong AND committed) | **3/40 = 7.5%** | one dangerous false `gap` (R10); rest are safe under-calls |
-| Run-to-run verdict agreement | **~95–97%** | both flips absorbed by review-gating |
+| metric | v1 (run 1 / run 2) | v2 (pass 1 / pass 2) |
+|---|--:|--:|
+| Accuracy over all 40 items (system errors count as failures) | 67.5 % / 62.5 % | 65.0 % / 67.5 % |
+| **Committed accuracy** (correct when it commits) | 21/24 = 87.5 % / 19/22 = 86.4 % | 21/22 = 95.5 % / 22/23 = 95.7 % |
+| **Coverage** (committed / scored) | 63.2 % / 59.5 % | 55.0 % / 57.5 % |
+| Silent errors (committed and wrong) | 3 / 3 | 1 / 1 |
+| Items routed to human review | 14 / 15 | 18 / 17 |
+| System errors | 2 / 3 | 0 / 0 |
 
-The dominant error mode is a **conservative bias** — when retrieval can't ground a `gap`,
-the system returns `insufficient` and routes to review rather than asserting a verdict it
-can't cite. That costs `gap` recall (50%) but keeps `gap` precision high (88.9%) — the
-right direction to be wrong in for a tool whose verdicts carry liability.
+How to read it, without spin: **overall accuracy did not improve** (about 66 % in both versions). What changed is that v2 is right about 95 % of the time *when it commits a verdict*, and in exchange it abstains on roughly 43-45 % of the requirements and routes them to a human reviewer. The v2 gain comes from abstention, not from being more right. Conformant recall fell (11/17 in v2 against 15/17 and 14/17 in v1, see [EVAL.md](EVAL.md#what-got-worse-conformant-items)). Calibration (EVAL.md "Confidence calibration — recomputed"): ECE 0.132 for the raw confidence, 0.003 after 5-fold cross-validated calibration; only the top tranche [0.8, 1.0] (26 items, 94.2 % observed accuracy, Wilson 95 % [78.4–98.7]) reaches 10 items, so the other predictions are answered `calibrated: false` and routed to review.
+
+Limits: the 40 items were seen while the v2 guards were designed, so this set cannot be used again to tune; one model, one TS 38.331 extract; the extraction step has not been evaluated yet (`scripts/eval-extraction.ts` was never run, so there is no extraction number). v1 diagnosis still holds: retrieval, not judgement, is the bottleneck (verdict accuracy given the right clause 92.3 % / 92.0 %, given the wrong clause 25.0 % / 16.7 % in v1; EVAL.md).
+
+The dominant error mode is a **conservative bias**: when retrieval can't ground a `gap`, the system returns `insufficient` and routes to review rather than asserting a verdict it can't cite. That costs `gap` recall (50.0 % and 56.2 % in v2) but no false gap was committed in either v2 pass (0/17, Wilson 95 % upper bound 18 %), which is the right direction to be wrong in for a tool whose verdicts carry liability.
 
 ## Honest status
 
@@ -125,9 +126,10 @@ right direction to be wrong in for a tool whose verdicts carry liability.
   and the OIDC deploy workflow.
 - Going live requires AWS credentials: `terraform apply` against an AWS account plus
   the GitHub secrets. Until then the system is complete but not on a live URL.
-- Evaluation: measured against a 40-item expert-validated benchmark — see the
-  [Evaluation](#evaluation) section and [EVAL.md](EVAL.md). Retrieval, not judgement, is
-  the bottleneck; committed verdicts run 87.5% accurate at 63% coverage.
+- Evaluation: measured against a 40-item expert-validated benchmark (already seen during
+  guard design) — see the [Evaluation](#evaluation) section and [EVAL.md](EVAL.md). In v2,
+  committed verdicts are 95.5-95.7 % accurate at 55-58 % coverage; overall accuracy is
+  unchanged (~66 %). No extraction numbers yet.
 - Polyglot persistence is a deliberate architecture choice: Neo4j is the central
   technical fit (clause-graph navigation), Qdrant is a fallback only, and Postgres
   holds relational run/matrix data.
