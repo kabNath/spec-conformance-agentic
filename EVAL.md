@@ -763,6 +763,22 @@ This section is about the evaluation of the `GAP_GUARD=verifier` rule (pre-regis
 
 Nothing was tuned on the TEST group: prompts, caps and criteria were committed before the first paid call.
 
+## History rewrite
+
+The git history of this repository is rewritten to remove third-party specification text (© 3GPP/ETSI) that earlier commits contained (`eval/results-run1.json`, `eval/results-run2.json`, `examples/ts38331-extrait.txt`, and the spec-text versions of `eval/gold-set.json`; details in `docs/spec-text-cleanup-plan.md`). Every commit after the first modified one gets a new SHA, including the pre-registration commit.
+
+Proof of the original history (pre-rewrite):
+
+| | |
+|---|---|
+| original pre-registration commit | `ad3175f1ffef683855172fdde73093373483004e` (2026-10-06T19:37:18+08:00); it is intact inside the bundle below |
+| SHA-256 of `eval/PREREGISTRATION-gap-guard.md` at that commit | `77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014` (unchanged by the rewrite: the file is not touched) |
+| Ed25519 attestation of that hash | `docs/preregistration.md` (signature verified against the payload; development key, not in `vidimus-svc/trusted-keys.json`) |
+| backup of the original history | `spec-conformance-agentic-before-rewrite-20261006.bundle`, `git bundle verify`: complete history, head `bd74c52` |
+| SHA-256 of the bundle | `2835e695090552b5ee099ea9e9a8d2d0398e17edbc0161b0fa7e2f0472a38db4` |
+
+The bundle contains the spec text and is **never published**; it is kept privately by the author. Old SHA → new SHA mapping and rewrite date: TBD, filled in after the rewrite.
+
 ## Changelog
 
 - **Reason rename (2026-10-06)** — `citation_too_short` when the quote is exact but under the 4-word minimum; `citation_not_verbatim` only when the quote is missing or absent from the clause. The minimum is unchanged. The committed v2 result files keep the old name (the replay in *Ablation des gardes* recognises both).
