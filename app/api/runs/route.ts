@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   // no ingestion ever keyed on.
   const standardId = spec.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-  const [stdText, implText, stdUrl, implUrl] = await Promise.all([
+  const [, implText, stdUrl, implUrl] = await Promise.all([ // the standard is parsed (fails fast on an unreadable file) but ingested separately: scripts/ingest.ts
     fileToText(std), fileToText(impl),
     uploadDoc(Buffer.from(await std.arrayBuffer()), std.name, orgId).catch(() => null),
     uploadDoc(Buffer.from(await impl.arrayBuffer()), impl.name, orgId).catch(() => null),

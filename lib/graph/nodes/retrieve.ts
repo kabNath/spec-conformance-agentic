@@ -7,7 +7,7 @@ import type { ConformanceStateT } from "../state";
 
 const MAX_HOPS = 4, MAX_RESEEDS = 2;
 
-async function embed(text: string): Promise<number[]> {
+export async function embed(text: string): Promise<number[]> {
   // OpenRouter/OpenAI embeddings via the LangChain OpenAI embeddings endpoint.
   const { OpenAIEmbeddings } = await import("@langchain/openai");
   const e = new OpenAIEmbeddings({
@@ -16,6 +16,32 @@ async function embed(text: string): Promise<number[]> {
     configuration: { baseURL: "https://openrouter.ai/api/v1" },
   });
   return e.embedQuery(text);
+}
+
+/** The citation for a clause that was read in the graph: relevance-selected window of its text, normative force, display string. */
+export async function citationFromClause(
+  meta: { spec: string; version: string; release: string }, standardId: string, clause: string, requirement: string,
+): Promise<ClauseCitation> {
+  const c = await getClause(standardId, clause);
+  // Relevance-selected window (was: first 500 chars, which clipped the governing sentence — R06/R08).
+  const win = selectWindow(String(c?.text ?? ""), requirement);
+  const base = {
+    spec: meta.spec, version: meta.version, release: meta.release,
+    clause, clauseTitle: c?.title, text: win.text, charStart: win.start, charEnd: win.end,
+    normative: (c?.normative ?? "none") as NormativeKeyword,
+  };
+  return { ...base, display: citationDisplay(base) };
+}
+
+/** Retrieval for ONE requirement outside a LangGraph run (MCP check_conformance): the same navigator, same fallback. */
+export async function retrieveForRequirement(input: {
+  requirement: string; orgId: string; standardId: string; standardMeta: { spec: string; version: string; release: string };
+}): Promise<{ citations: ClauseCitation[]; path: string[] }> {
+  const r = await retrieveNode({
+    orgId: input.orgId, standardId: input.standardId, standardMeta: input.standardMeta,
+    requirements: [{ requirement: input.requirement }], cursor: 0,
+  } as ConformanceStateT);
+  return { citations: r.citations ?? [], path: r.path ?? [] };
 }
 
 interface NavStep { action: "read" | "follow" | "done" | "stuck"; clause?: string; done?: boolean }
@@ -59,16 +85,7 @@ export async function retrieveNode(s: ConformanceStateT): Promise<Partial<Confor
     }
 
     if (found) {
-      const c = await getClause(s.standardId, found);
-      // Relevance-selected window (was: first 500 chars, which clipped the governing sentence — R06/R08).
-      const win = selectWindow(String(c?.text ?? ""), req.requirement);
-      const base = {
-        spec: s.standardMeta.spec, version: s.standardMeta.version, release: s.standardMeta.release,
-        clause: found, clauseTitle: c?.title, text: win.text, charStart: win.start, charEnd: win.end,
-        normative: (c?.normative ?? "none") as NormativeKeyword,
-      };
-      const citation: ClauseCitation = { ...base, display: citationDisplay(base) };
-      return { citations: [citation], path };
+      return { citations: [await citationFromClause(s.standardMeta, s.standardId, found, req.requirement)], path };
     }
 
     // stalled → Qdrant fallback re-seed

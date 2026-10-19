@@ -7,43 +7,19 @@ import { StateGraph, END, START } from "@langchain/langgraph";
 import { ConformanceState, type ConformanceStateT } from "./state";
 import { extractNode } from "./nodes/extract";
 import { retrieveNode } from "./nodes/retrieve";
-import { judge } from "./judge";
+import { evaluateRequirement } from "../evaluate-requirement";
 import { persistRows } from "./persist";
 import { prisma } from "../clients/prisma";
-import type { EvaluatedRequirement, RunSummary, ReviewReason } from "../conformance-contract";
-import { attest } from "../clients/vidimus";
+import type { RunSummary } from "../conformance-contract";
 
-// compile = assess + verify + build one matrix row + advance the cursor.
+// compile = assess + verify + build one matrix row + advance the cursor
+// (the per-requirement logic lives in lib/evaluate-requirement.ts, shared with the MCP server).
 async function compileNode(s: ConformanceStateT): Promise<Partial<ConformanceStateT>> {
   const req = s.requirements[s.cursor];
-  // assess + deterministic citation guards + verifier (see lib/graph/judge.ts)
-  const { a, v, blockedReason, citations, trace, rejectedQuoteText } = await judge(req.requirement, s.standardId, s.citations);
-
-  // Vidimus: empirical (tranche-accuracy) confidence + signed attestation. When the
-  // tranche is too small to calibrate, fall back to the raw LLM signal and route to review.
-  const att = await attest({
-    requirement: req.requirement, verdict: a.verdict,
-    assessorConfidence: a.confidence, verifierConfidence: v.confidence,
-    verifierAgrees: v.agrees, citations,
+  const row = await evaluateRequirement({
+    runId: s.runId, requirement: req.requirement, section: req.section, standardId: s.standardId,
+    implDocName: s.implDocName, citations: s.citations, path: s.path, reviewThreshold: s.reviewThreshold,
   });
-  const confidence = att.calibrated && att.calibratedConfidence !== null
-    ? att.calibratedConfidence : att.rawConfidence;
-
-  let review: { required: boolean; reason?: ReviewReason };
-  if (s.citations.length === 0) review = { required: true, reason: "no_clause_found" };
-  else if (blockedReason) review = { required: true, reason: blockedReason };
-  else if (!v.agrees) review = { required: true, reason: "verifier_disagreement" };
-  else if (!att.calibrated || confidence < s.reviewThreshold) review = { required: true, reason: "low_confidence" };
-  else review = { required: false };
-
-  const row: EvaluatedRequirement = {
-    id: crypto.randomUUID(), runId: s.runId, requirement: req.requirement,
-    source: { documentId: s.standardId, documentName: s.implDocName, section: req.section },
-    citations, verdict: a.verdict, normative: a.normative, confidence,
-    verifier: v, review, gapNote: a.gapNote, retrievalPath: s.path, attestation: att,
-    model: process.env.OPENROUTER_MODEL ?? "", evaluatedAt: new Date().toISOString(),
-    trace, rejectedQuoteText,
-  } as EvaluatedRequirement & { rejectedQuoteText?: string };
   return { rows: [row], cursor: s.cursor + 1, citations: [], path: [] };
 }
 

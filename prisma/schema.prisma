@@ -18,6 +18,7 @@ model Organization {
   createdAt DateTime         @default(now())
   assets    Asset[]
   runs      ConformanceRun[]
+  apiKeys   ApiKey[]
 }
 
 model Asset {
@@ -90,4 +91,43 @@ model RejectedQuote {
   createdAt     DateTime             @default(now())
 
   @@index([orgId])
+}
+
+/// API key of an organisation, for non-interactive clients (the MCP server). One ACTIVE key per organisation
+/// (partial unique index in the migration: Prisma cannot express it). Only the SHA-256 of the key is stored;
+/// the key itself is shown once by scripts/create-api-key.ts. `prefix` identifies the row, it is not secret.
+model ApiKey {
+  id         String       @id @default(uuid())
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name       String
+  prefix     String       @unique
+  keyHash    String       @unique
+  createdBy  String?
+  createdAt  DateTime     @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([orgId])
+}
+
+/// One row per MCP tool call: hashes of input and output (never the content), outcome, latency, and the
+/// Ed25519-signed record returned by the sidecar's /sign-call (null if the sidecar was unreachable).
+model McpToolCall {
+  id           String   @id @default(uuid())
+  orgId        String
+  apiKeyId     String?
+  tool         String
+  requestId    String
+  inputSha256  String
+  outputSha256 String?
+  outcome      String // ok | abstained | error
+  errorCode    String?
+  latencyMs    Int
+  verdictId    String?
+  signed       Json?
+  createdAt    DateTime @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([verdictId])
 }

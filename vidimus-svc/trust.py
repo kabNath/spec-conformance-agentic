@@ -115,3 +115,36 @@ def verify_attestation(resp: dict, requirement: str, verdict: str, citations: li
     elif issued < entry["_from"] or (entry["_until"] is not None and issued > entry["_until"]):
         issues.append(f"issued_at {resp['issued_at']} is outside the validity window of key {resp['key_id']}")
     return not issues, issues
+
+
+TOOL_CALL_TYPE = "vidimus-svc.tool-call-record.v1"
+TOOL_CALL_FIELDS = ("tool", "org_id_sha256", "request_id", "input_sha256", "output_sha256", "outcome",
+                    "error_code", "latency_ms", "verdict_id", "key_id", "issued_at")
+
+
+def tool_call_payload(rec: dict) -> dict:
+    """The exact object that is canonicalised, hashed and signed for a tool-call record."""
+    return {"type": TOOL_CALL_TYPE, **{f: rec.get(f) for f in TOOL_CALL_FIELDS}}
+
+
+def verify_tool_call_record(rec: dict, trusted: list[dict]) -> tuple[bool, list[str]]:
+    """Same checks as verify_attestation, for a signed tool-call record (content_hash, signature, public_key)."""
+    issues: list[str] = []
+    try:
+        pub = rec["public_key"]
+        if key_id_of(pub) != rec["key_id"]:
+            return False, ["key_id is not the fingerprint of public_key"]
+        h = hashlib.sha256(canonicalize(tool_call_payload(rec))).hexdigest()
+        if h != rec["content_hash"]:
+            issues.append("content hash does not match the signed record (record altered)")
+        if not verify_hex(public_key_from_hex(pub), rec["signature"], rec["content_hash"].encode()):
+            issues.append("Ed25519 signature does not verify")
+        issued = parse_time(rec["issued_at"])
+    except (KeyError, ValueError) as e:
+        return False, [f"malformed record: {e}"]
+    entry = next((k for k in trusted if k["key_id"] == rec["key_id"]), None)
+    if entry is None:
+        issues.append(f"signing key {rec['key_id']} is not in trusted-keys.json")
+    elif issued < entry["_from"] or (entry["_until"] is not None and issued > entry["_until"]):
+        issues.append(f"issued_at {rec['issued_at']} is outside the validity window of key {rec['key_id']}")
+    return not issues, issues

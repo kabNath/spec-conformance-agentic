@@ -16,7 +16,7 @@ WORKDIR /app
 COPY vidimus-svc/ /app/vidimus-svc/
 COPY eval/ /app/eval/
 RUN pip install --no-cache-dir -r vidimus-svc/requirements-dev.txt
-RUN python vidimus-svc/test_attest.py && python vidimus-svc/test_calibration.py && python vidimus-svc/test_keys.py
+RUN python vidimus-svc/test_attest.py && python vidimus-svc/test_calibration.py && python vidimus-svc/test_keys.py && python vidimus-svc/test_verify_and_sign.py
 
 # --- runtime image (default target)
 FROM base AS runtime
