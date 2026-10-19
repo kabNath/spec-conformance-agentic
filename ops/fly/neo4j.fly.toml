@@ -1,0 +1,35 @@
+# Neo4j (clause graph). Private only (Bolt over Flycast). Rebuildable from the specification like Qdrant.
+# Measured locally with these heap settings: ~510 MiB resident, so a 1 GB machine; it needs 20-40 s to start.
+app = "sca-nk-neo4j"
+primary_region = "nrt"
+kill_timeout = "30s"
+
+[build]
+  image = "neo4j:5"
+
+[env]
+  NEO4J_server_memory_heap_initial__size = "256m"
+  NEO4J_server_memory_heap_max__size = "384m"
+  NEO4J_server_memory_pagecache_size = "96m"
+  NEO4J_server_bolt_listen__address = "0.0.0.0:7687"
+  NEO4J_server_http_enabled = "false"
+  NEO4J_server_https_enabled = "false"
+  # secret: NEO4J_AUTH (neo4j/<password>)
+
+[[mounts]]
+  source = "neo4jdata"
+  destination = "/data"
+  initial_size = "2gb"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 7687
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  [[services.ports]]
+    port = 7687
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

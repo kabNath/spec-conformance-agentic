@@ -1,0 +1,47 @@
+# The web app + REST API + MCP endpoint. Public on https://sca-nk-app.fly.dev (shared IPv4, no dedicated IP).
+app = "sca-nk-app"
+primary_region = "nrt"
+
+[build.args]
+  # public by design (inlined in the browser bundle); the deploy script fills it from the secrets file without printing it
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = ""
+
+[env]
+  NODE_ENV = "production"
+  NODE_OPTIONS = "--max-old-space-size=320"
+  OPENROUTER_MODEL = "anthropic/claude-sonnet-4.6"
+  OPENROUTER_VERIFIER_MODEL = "google/gemini-3.8-flash"
+  OPENROUTER_VERIFIER_PROVIDER = "google-vertex"
+  GAP_GUARD = "verifier"
+  RATE_LIMIT_PER_MIN = "60"
+  # private addresses of the other apps (Flycast): a request to them starts a stopped machine
+  VIDIMUS_URL = "http://sca-nk-sidecar.flycast"
+  QDRANT_URL = "http://sca-nk-qdrant.flycast:6333"
+  NEO4J_URI = "bolt://sca-nk-neo4j.flycast:7687"
+  NEO4J_USER = "neo4j"
+  # secrets (fly secrets): DATABASE_URL, NEO4J_PASSWORD, QDRANT_API_KEY, OPENROUTER_API_KEY, CLERK_SECRET_KEY, CLOUDINARY_URL (optional)
+
+[deploy]
+  release_command = "node node_modules/prisma/build/index.js migrate deploy"   # starts Postgres through Flycast if it is stopped
+  release_command_timeout = "5m"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 10
+    hard_limit = 20
+  [[http_service.checks]]
+    method = "GET"
+    path = "/api/healthz"
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "40s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
