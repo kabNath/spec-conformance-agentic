@@ -70,3 +70,24 @@ is attested by someone else. **This has not been done yet**; the hash is to be p
 
 OpenTimestamps (Bitcoin-anchored proof) would be one way: `ots stamp eval/PREREGISTRATION-gap-guard.md` produces `eval/PREREGISTRATION-gap-guard.md.ots`, and `ots verify` checks it later. **No `.ots` file exists**: the OpenTimestamps client is **not installed** on the machine
 that produced this record (checked: no `ots` command, no `opentimestamps-client` Python package), and nothing was installed for this purpose.
+
+## Second attestation, signed with the production key (2026-10-19)
+
+After the history rewrite (`EVAL.md`, "History rewrite") the pre-registration commit has a new SHA, and a production signing key now exists and is listed in `vidimus-svc/trusted-keys.json`. The same file was therefore attested again with that key:
+
+| | |
+|---|---|
+| attestation | [`docs/preregistration.attestation-prod.json`](preregistration.attestation-prod.json) (type `vidimus.document-attestation.v1`, same payload fields as above) |
+| document / SHA-256 | `eval/PREREGISTRATION-gap-guard.md` / `77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014` (unchanged) |
+| origin commit (rewritten history) | `9571ff7e5366904799b935afd39819a45c1bf59e`, tag `prereg-v2` (the original SHA `ad3175f1` exists only in the private bundle) |
+| signing key id | `81360f61aefb0a9a681b43a53b8fe44a198e6571d06fd6d0419d83a4fe0e7472`, listed in `trusted-keys.json` since 2026-10-19 |
+| signed at | 2026-10-19T04:45:46Z |
+
+Verify (needs the `vidimus` package; checks signature, the document hash and that the key is listed and was valid at `signed_at`):
+
+```bash
+python vidimus-svc/sign_document.py eval/PREREGISTRATION-gap-guard.md \
+  --verify docs/preregistration.attestation-prod.json --trusted vidimus-svc/trusted-keys.json
+```
+
+`test_sign_document.py` runs this check in CI. What it still does **not** prove: `signed_at` is asserted by the signer and the evaluation ran before it; the date of the pre-registration rests on the git history of the tag and on the private bundle. The independent timestamp section above is still open. The first attestation (development key, not listed) is kept as a second witness.

@@ -50,6 +50,8 @@ jobs:
         run: python vidimus-svc/test_verdict_files.py
       - name: /verify and /sign-call round trips
         run: python vidimus-svc/test_verify_and_sign.py
+      - name: Production key registry and document attestations
+        run: python vidimus-svc/test_sign_document.py
       - name: Test inside the image (Dockerfile "test" stage runs test_attest / test_calibration / test_keys)
         run: docker build -f vidimus-svc/Dockerfile --target test -t vidimus-svc:test .
       - name: Build the runtime image (catches Dockerfile / dependency breakage)

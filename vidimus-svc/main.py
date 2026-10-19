@@ -75,6 +75,13 @@ def _load_signing_key() -> tuple[KeyPair, str]:
     pem = os.getenv("VIDIMUS_SIGNING_KEY_PEM")
     if pem:
         return _keypair_from_pem(pem), "env VIDIMUS_SIGNING_KEY_PEM"
+    key_file = os.getenv("VIDIMUS_SIGNING_KEY_FILE")  # a mounted secret (Docker/Compose secret, Fly/Railway secret file)
+    if key_file:
+        try:
+            pem = Path(key_file).read_text()
+        except OSError:
+            raise KeyConfigError("VIDIMUS_SIGNING_KEY_FILE is set but the file cannot be read") from None
+        return _keypair_from_pem(pem), "file VIDIMUS_SIGNING_KEY_FILE"
     existing = sorted(_KEYS_DIR.glob("*.priv.pem"))
     if existing:
         return load_keypair(existing[0]), f"file in {_KEYS_DIR}"
@@ -83,7 +90,7 @@ def _load_signing_key() -> tuple[KeyPair, str]:
         save_keypair(kp, _KEYS_DIR)
         return kp, f"generated (VIDIMUS_ALLOW_EPHEMERAL=1) and saved in {_KEYS_DIR}"
     raise KeyConfigError(
-        f"No signing key found in {_KEYS_DIR} and VIDIMUS_SIGNING_KEY_PEM is not set. Refusing to start: "
+        f"No signing key found in {_KEYS_DIR} and neither VIDIMUS_SIGNING_KEY_PEM nor VIDIMUS_SIGNING_KEY_FILE is set. Refusing to start: "
         "mount a persistent volume holding the key at that path, or provide the key through the "
         "VIDIMUS_SIGNING_KEY_PEM secret. For LOCAL DEVELOPMENT ONLY, set VIDIMUS_ALLOW_EPHEMERAL=1 to "
         "generate one on first start."
