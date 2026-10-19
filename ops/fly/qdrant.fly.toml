@@ -1,0 +1,27 @@
+# Qdrant (vector fallback). Private only. Its content is derived from the ingested specification and can be rebuilt (npm run ingest).
+app = "sca-nk-qdrant"
+primary_region = "nrt"
+
+[build]
+  image = "qdrant/qdrant:v1.12.4"
+
+[env]
+  QDRANT__SERVICE__HTTP_PORT = "6333"
+  QDRANT__STORAGE__ON_DISK_PAYLOAD = "true"
+  # secret: QDRANT__SERVICE__API_KEY
+
+[[mounts]]
+  source = "qdrantdata"
+  destination = "/qdrant/storage"
+  initial_size = "1gb"
+
+[http_service]
+  internal_port = 6333
+  force_https = false
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -24,6 +24,14 @@ jobs:
       - uses: actions/checkout@v4
       - run: scripts/test-network-isolation.sh --live
 
+  # Backup -> restore round trip against a throw-away Postgres and an S3 fake (ops/backup/test-restore.sh).
+  backup-restore:
+    name: backup → restore round trip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ops/backup/test-restore.sh
+
   # Runs in parallel with `build` (no `needs:`); its status is a separate,
   # independently-visible check — a failure here goes red on its own.
   vidimus-svc:
