@@ -33,7 +33,9 @@ from vidimus.audit.signing import sign_hex
 from vidimus.audit.keys import KeyPair, generate_keypair, load_keypair, save_keypair
 
 import calibration
-from trust import TrustedKeysError, load_trusted, signed_payload  # noqa: F401  (signed_payload re-exported)
+from trust import (  # noqa: F401  (signed_payload re-exported)
+    TrustedKeysError, load_trusted, signed_payload, tool_call_payload, verify_attestation,
+)
 
 log = logging.getLogger("vidimus-svc")
 
@@ -179,6 +181,77 @@ def attest(x: AttestIn) -> AttestOut:
     signature = sign_hex(kp.private_key, content_hash.encode())
 
     return AttestOut(**d, content_hash=content_hash, signature=signature, public_key=kp.public_key_hex)
+
+
+class VerifyIn(BaseModel):
+    requirement: str
+    verdict: str
+    citations: list[dict]  # [{"display": "..."}]: only `display` is signed
+    attestation: dict      # the AttestOut fields stored with the verdict
+
+
+class VerifyOut(BaseModel):
+    integrity_valid: bool  # hash and Ed25519 signature check out, whoever the signer is
+    signer_trusted: bool   # ...and the signing key is listed in trusted-keys.json and was valid at issued_at
+    key_id: str | None
+    issues: list[str]      # integrity problems (empty when integrity_valid)
+    trust_issues: list[str]
+    warnings: list[str]
+
+
+@app.post("/verify", response_model=VerifyOut)
+def verify(x: VerifyIn) -> VerifyOut:
+    """Check a stored verdict attestation. Integrity and trust are reported separately: an unlisted key
+    (today's state: trusted-keys.json is empty) gives integrity_valid=True, signer_trusted=False."""
+    a = x.attestation
+    epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    own = [{"key_id": a.get("key_id"), "_from": epoch, "_until": None}]
+    ok, issues = verify_attestation(a, x.requirement, x.verdict, x.citations, own)
+    try:
+        trusted = load_trusted(_TRUSTED_FILE)
+    except TrustedKeysError as e:
+        trusted, issues = [], issues + [f"trusted-keys.json problem: {e}"]
+    trust_ok, trust_issues = verify_attestation(a, x.requirement, x.verdict, x.citations, trusted) if ok else (False, [])
+    warnings = []
+    if ok and not trust_ok:
+        warnings.append("signer not pinned: the signature proves integrity, not identity")
+    if ok and not a.get("calibrated"):
+        warnings.append("confidence NOT calibrated (raw value is an uncalibrated LLM signal)")
+    return VerifyOut(integrity_valid=ok, signer_trusted=ok and trust_ok, key_id=a.get("key_id"),
+                     issues=issues, trust_issues=trust_issues, warnings=warnings)
+
+
+class SignCallIn(BaseModel):
+    tool: str
+    org_id_sha256: str
+    request_id: str
+    input_sha256: str
+    output_sha256: str | None = None
+    outcome: str            # "ok" | "abstained" | "error"
+    error_code: str | None = None
+    latency_ms: int
+    verdict_id: str | None = None
+
+
+class SignCallOut(SignCallIn):
+    key_id: str
+    issued_at: str
+    content_hash: str
+    signature: str
+    public_key: str
+
+
+@app.post("/sign-call", response_model=SignCallOut)
+def sign_call(x: SignCallIn) -> SignCallOut:
+    """Sign one MCP tool-call record (hashes only, never the content). Own `type`, so a record can never be
+    mistaken for a verdict attestation. Like /attest this endpoint has no caller authentication: keep the
+    sidecar on a private network (a signing oracle otherwise)."""
+    kp = get_signing_key()
+    rec = {**x.model_dump(), "key_id": kp.fingerprint,
+           "issued_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")}
+    content_hash = hashlib.sha256(canonicalize(tool_call_payload(rec))).hexdigest()
+    signature = sign_hex(kp.private_key, content_hash.encode())
+    return SignCallOut(**rec, content_hash=content_hash, signature=signature, public_key=kp.public_key_hex)
 
 
 @app.get("/pubkey")
