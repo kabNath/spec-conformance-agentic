@@ -16,6 +16,14 @@ jobs:
       - run: npm run lint
       - run: npm run build
 
+  # The signing sidecar and the databases must not be reachable from outside the compose stack.
+  selfhost:
+    name: self-hosted stack (images build, sidecar isolated)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/test-network-isolation.sh --live
+
   # Runs in parallel with `build` (no `needs:`); its status is a separate,
   # independently-visible check — a failure here goes red on its own.
   vidimus-svc:

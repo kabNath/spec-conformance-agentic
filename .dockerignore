@@ -1,0 +1,25 @@
+# Build context of the app image: only what the build needs. No secrets, no dependencies, no local data.
+.git
+.github
+node_modules
+.next
+.env
+.env.*
+!.env.example
+.clerk
+*.pem
+SECRETS-*
+*.docx
+*.mov
+*.gif
+# evaluation inputs/outputs are not needed to build or run the app (and raw results carry spec text)
+eval
+docs
+demo
+examples
+tests
+infra
+vidimus-svc
+scripts/test-*.ts
+**/*.log
+.DS_Store
