@@ -50,8 +50,8 @@ SRC=$(T psql -qtA -d conformance -f /work/compare.sql); DST=$(T psql -qtA -d res
 echo "$SRC" | sed 's/^/   /'
 [ "$SRC" = "$DST" ] || { echo "$DST"; fail "restored data differs from the source"; }
 echo "ok: row counts and content hashes identical (incl. UTF-8 and JSON columns)"
-T psql -qtA -d restored -c "INSERT INTO \"ApiKey\"(id,\"orgId\",name,prefix,\"keyHash\") VALUES ('k9','org_a','dup','sca_dddddddd','h9')" 2>&1 | grep -q "ApiKey_one_active_per_org" \
-  || fail "the partial unique index (one active key per organisation) is missing after restore"
+OUT=$(T psql -qtA -d restored -c "INSERT INTO \"ApiKey\"(id,\"orgId\",name,prefix,\"keyHash\") VALUES ('k9','org_a','dup','sca_dddddddd','h9')" 2>&1 || true)
+grep -q "ApiKey_one_active_per_org" <<<"$OUT" || fail "the partial unique index (one active key per organisation) is missing after restore: $OUT"
 echo "ok: the one-active-key-per-organisation constraint is enforced after restore"
 
 echo "== negative: without the age key the encrypted dump is not restorable"
@@ -63,11 +63,14 @@ echo "ok: refused"
 echo "== negative: a corrupted object is detected"
 KEY=$(T aws s3 ls s3://test-backups/postgres/ | awk '{print $4}' | grep -E '\.dump\.age$' | tail -1)
 T bash -c "aws s3 cp --only-show-errors s3://test-backups/postgres/$KEY /tmp/x && printf 'X' | dd of=/tmp/x bs=1 seek=40 conv=notrunc 2>/dev/null && aws s3 cp --only-show-errors /tmp/x s3://test-backups/postgres/$KEY"
-if T bash -c 'BACKUP_AGE_IDENTITY=/tmp/age.key RESTORE_DATABASE=corrupt restore.sh latest' 2>&1 | grep -q "CHECKSUM MISMATCH"; then echo "ok: checksum mismatch reported, nothing restored"; else fail "a corrupted backup was not detected"; fi
+OUT=$(T bash -c 'BACKUP_AGE_IDENTITY=/tmp/age.key RESTORE_DATABASE=corrupt restore.sh latest' 2>&1 || true)
+if grep -q "CHECKSUM MISMATCH" <<<"$OUT"; then echo "ok: checksum mismatch reported, nothing restored"; else fail "a corrupted backup was not detected: $OUT"; fi
 
 echo "== retention: a backup older than the window is pruned, a recent one kept"
 T bash -c 'echo old > /tmp/o && aws s3 cp --only-show-errors /tmp/o s3://test-backups/postgres/conformance-20200101T000000Z.dump'
-T bash -c 'BACKUP_RETENTION_DAYS=14 BACKUP_AGE_RECIPIENT=$(cat /tmp/recipient) backup.sh' | grep -q "pruned postgres/conformance-20200101T000000Z.dump" || fail "old backup not pruned"
-T aws s3 ls s3://test-backups/postgres/ | grep -q "20200101" && fail "old backup still there"
+OUT=$(T bash -c 'BACKUP_RETENTION_DAYS=14 BACKUP_AGE_RECIPIENT=$(cat /tmp/recipient) backup.sh' 2>&1)
+grep -q "pruned postgres/conformance-20200101T000000Z.dump" <<<"$OUT" || fail "old backup not pruned: $OUT"
+LISTING=$(T aws s3 ls s3://test-backups/postgres/)
+if grep -q "20200101" <<<"$LISTING"; then fail "old backup still there"; fi
 echo "ok: pruned"
 echo "PASS"
