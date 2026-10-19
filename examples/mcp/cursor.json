@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "conformance-http": {
+      "url": "https://YOUR-HOST/api/mcp",
+      "headers": { "Authorization": "Bearer sca_replace_with_your_api_key" }
+    }
+  }
+}

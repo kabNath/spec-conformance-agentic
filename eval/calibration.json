@@ -1,0 +1,103 @@
+{
+  "schema": "vidimus-svc.calibration.v2",
+  "version": "cal-102be0bdb9d1",
+  "generated_at": "2026-10-06T12:45:50+00:00",
+  "model": "anthropic/claude-sonnet-4.6",
+  "target": "verdict_correct: pred_verdict == human_verdict (gold-set.json)",
+  "raw_confidence": "mean(assessor_confidence, verifier_confidence), x0.5 if the verifier disagrees",
+  "min_n_per_tranche": 10,
+  "min_n_unit": "distinct items",
+  "interval": "Wilson score, 95%, one unit per (item, tranche)",
+  "n_reference": 40,
+  "n_items": 40,
+  "n_gold_items": 40,
+  "n_predictions": 80,
+  "n_runs": 2,
+  "n_errored_excluded": 0,
+  "ece_raw": 0.132,
+  "cross_validation": {
+    "k": 5,
+    "grouping": "item",
+    "n_predictions": 80,
+    "n_covered": 52,
+    "n_routed_to_review": 28,
+    "coverage": 0.65,
+    "ece_calibrated": 0.0029,
+    "accuracy_covered": 0.9423
+  },
+  "tranches": [
+    {
+      "lo": 0.0,
+      "hi": 0.2,
+      "n": 0,
+      "n_predictions": 0,
+      "n_correct": 0,
+      "mean_confidence": null,
+      "accuracy": null,
+      "ci_low": null,
+      "ci_high": null,
+      "calibrated": false
+    },
+    {
+      "lo": 0.2,
+      "hi": 0.4,
+      "n": 8,
+      "n_predictions": 16,
+      "n_correct": 1.0,
+      "mean_confidence": 0.35,
+      "accuracy": 0.125,
+      "ci_low": 0.0224,
+      "ci_high": 0.4709,
+      "calibrated": false
+    },
+    {
+      "lo": 0.4,
+      "hi": 0.6,
+      "n": 4,
+      "n_predictions": 8,
+      "n_correct": 1.0,
+      "mean_confidence": 0.4797,
+      "accuracy": 0.25,
+      "ci_low": 0.0456,
+      "ci_high": 0.6994,
+      "calibrated": false
+    },
+    {
+      "lo": 0.6,
+      "hi": 0.8,
+      "n": 2,
+      "n_predictions": 4,
+      "n_correct": 0.0,
+      "mean_confidence": 0.75,
+      "accuracy": 0.0,
+      "ci_low": 0.0,
+      "ci_high": 0.6576,
+      "calibrated": false
+    },
+    {
+      "lo": 0.8,
+      "hi": 1.0,
+      "n": 26,
+      "n_predictions": 52,
+      "n_correct": 24.5,
+      "mean_confidence": 0.9831,
+      "accuracy": 0.9423,
+      "ci_low": 0.7842,
+      "ci_high": 0.9866,
+      "calibrated": true
+    }
+  ],
+  "inputs": {
+    "gold-set.json": "dda9aa801d190d383558c45f19e6f63ed9770417a6bdbce7e4fd85b1b75c885e",
+    "results-v2-gapguard-1.public.json": "f9507a5c9911f9edaf3414c78bb6c4b088bb1af98539da295d9cca24d08401c3",
+    "results-v2-gapguard-2.public.json": "a0caaadb1924e0bb1730a114fe9680135fd69e36195fa31db387068ef78f7252"
+  },
+  "caveats": [
+    "Reference set is small (40 gold items, one model); tranche estimates are coarse.",
+    "Both runs score the same items, so predictions are not independent. Counts, the n >= 10 rule and the Wilson intervals therefore use one unit per (item, tranche) -- an item that was right in one run and wrong in the other counts as 0.5 -- instead of one per prediction.",
+    "Wilson intervals on fractional counts are an approximation, and tranche membership is itself estimated from the same data: treat them as indicative.",
+    "Calibration quality (ECE) is measured by 5-fold cross-validation grouped by item; predictions whose tranche has < 10 training items are not calibrated and go to human review.",
+    "Valid only for the model named here on this corpus (TS 38.331 v19.3.0 extract); re-run calibrate.py after any model, prompt or retrieval change.",
+    "Intervals capture sampling noise only, not systematic error shared by the LLM judges."
+  ]
+}

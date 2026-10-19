@@ -29,6 +29,9 @@ infra/terraform/terraform.tfvars
 # OS / editor cruft
 .DS_Store
 
+# Local-only compose port remapping (avoids clashes with other stacks)
+docker-compose.override.yml
+
 # 3GPP spec source (© 3GPP/ETSI) — local input, not redistributed
 *.docx
 examples/ts38331-source.txt
@@ -36,3 +39,13 @@ examples/ts38331-extract.txt
 
 # Eval harness transient output (the pinned run1/run2 artifacts ARE committed)
 eval/results.json
+
+# Raw eval outputs contain spec text and model prose (not redistributable): keep only the sanitised *.public.json
+eval/results-v2-*.json
+!eval/results-v2-*.public.json
+
+# Raw v1 result files contain spec text: only their sanitised *.public.json are committed
+eval/results-run[0-9].json
+
+# clerk configuration (can include secrets)
+/.clerk/

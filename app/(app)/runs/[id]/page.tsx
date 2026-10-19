@@ -14,7 +14,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const requirements = rows.map((r) => ({
     id: r.id, runId: r.runId, requirement: r.requirement, source: r.source,
     citations: r.citations, verdict: r.verdict, normative: r.normative, confidence: r.confidence,
-    verifier: r.verifier, review: r.review, gapNote: r.gapNote ?? undefined,
+    verifier: r.verifier, review: r.review, attestation: r.attestation, gapNote: r.gapNote ?? undefined,
     retrievalPath: (r.retrievalPath as string[]) ?? undefined, model: r.model ?? "", evaluatedAt: r.evaluatedAt.toISOString(),
   })) as unknown as EvaluatedRequirement[];
 

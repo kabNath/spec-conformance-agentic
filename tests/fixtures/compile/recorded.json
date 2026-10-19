@@ -1,0 +1,17 @@
+{
+  "f5a445e6cd454bd717e28b9d6d92457b37435dc0e0241e936c9fcfa9c4923442": "{\"requirements\":[{\"requirement\":\"The terminal starts timer T901 and sends a SessionRequest message when it opens a link session.\",\"section\":\"R1\"},{\"requirement\":\"The terminal releases the session before answering with a SessionUpdateComplete message.\",\"section\":\"R2\"},{\"requirement\":\"The terminal ignores the parameter order of a SessionUpdate message.\",\"section\":\"R3\"},{\"requirement\":\"The terminal encrypts the control channel with a rotating key.\",\"section\":\"R4\"}]}",
+  "0af3301959864e68358eed528efbc7575581a07a75ae282134372851d1ef424b": "{\"action\":\"stuck\"}",
+  "0317b06040c25d92e671a9bb3b32e9c467a0103cec5c5af0ece5e7a0a0057316": "{\"action\":\"done\",\"clause\":\"5.3.3\",\"done\":true}",
+  "19ee353d0140e579d3b593fd15b6080394a7e96df53138b75db68b412feb50ef": "{\"verdict\":\"conformant\",\"confidence\":0.95,\"gapNote\":\"\",\"quote\":\"the terminal shall apply the default channel parameters, start timer T901 and send a SessionRequest message carrying a random session value\"}",
+  "376d0394d299d9705654c1f6235e17ea24e5715a0a98bac64c95416b8b066d6f": "{\"agrees\":true,\"confidence\":0.9,\"note\":\"The clause supports the verdict.\"}",
+  "f12087e7127f23c3c981ff0c1ae528967b2f1980073e48f12caf559d153c31c5": "{\"action\":\"stuck\"}",
+  "20db2c654e24b4c4384b99f4cb55fd3347d6e4b602cb13632c6706784149b9b8": "{\"action\":\"done\",\"clause\":\"5.3.5\",\"done\":true}",
+  "2b925d71e59fa58f836b86aa2ffb1ba72aa89dc03228a2564714bf32c2971e4e": "{\"verdict\":\"gap\",\"confidence\":0.93,\"gapNote\":\"Releases before the completion message.\",\"quote\":\"shall not release the session before it has answered with a SessionUpdateComplete message\"}",
+  "38eee35ede019136642b838bfd6d5d24f6e8c7ea9f0a47ddd9b459446944ab83": "{\"same_subject\":true,\"subject\":\"release of the session\",\"contradicts\":true,\"passage_words\":\"shall not release the session\",\"requirement_words\":\"releases the session\"}",
+  "a122af1b1755b3a349fb710465259672db9eac4cf79c27feceb0e1056d6a7f3f": "{\"agrees\":true,\"confidence\":0.9,\"note\":\"The clause supports the verdict.\"}",
+  "bcc669dd96cb76c52a561c0f0d9419d0a68fe773edf2c1662ce04791f2ac2018": "{\"action\":\"stuck\"}",
+  "8c904bc146e32dbad4b94a1b052734c22ced9d0880e153471951b50f1e67b670": "{\"action\":\"done\",\"clause\":\"5.3.5\",\"done\":true}",
+  "7a3898cd14cb6ccf96699206532728f6012d76916283de97ef222729dcc59343": "{\"verdict\":\"gap\",\"confidence\":0.9,\"gapNote\":\"Order is mandatory.\",\"quote\":\"The terminal must keep the received order of parameters at all times\"}",
+  "0af6229967ee371edb00968e48ad080adb5c36c91291c98e54f456b16f5cd184": "{\"agrees\":true,\"confidence\":0.9,\"note\":\"The clause supports the verdict.\"}",
+  "cf49a1841cff1bbc079f131044992587660358af1f9b0c3e1e8fd93261ad938c": "{\"action\":\"stuck\"}"
+}

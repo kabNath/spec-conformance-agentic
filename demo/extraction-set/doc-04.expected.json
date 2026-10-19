@@ -1,0 +1,30 @@
+{
+  "id": "doc-04",
+  "document": "doc-04.txt",
+  "sentences": [
+    "Sessions on the Delta terminal use the default channel parameters until a SessionUpdate message is received.",
+    "The control channel CCH1 is opened during session set-up.",
+    "The terminal never closes CCH1 while a session is active.",
+    "The marketing name of the product is Delta One."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall use the default channel parameters until a SessionUpdate message is received."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "The terminal shall open the control channel CCH1 during session set-up."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 3,
+      "text": "The terminal shall not close CCH1 while a session is active."
+    }
+  ],
+  "non_requirement_sentences": [
+    4
+  ]
+}

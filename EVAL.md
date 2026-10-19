@@ -134,6 +134,10 @@ tsx --env-file=.env.local scripts/eval.ts --dry-run    # first 3 items, real cal
 
 # 3) Full evaluation → writes eval/results.json:
 tsx --env-file=.env.local scripts/eval.ts
+
+# 4) Rebuild the confidence calibration from the gold set + the two runs
+#    (copy results.json to eval/results-run1.json / results-run2.json first; only their sanitised `*.public.json` versions are committed):
+python vidimus-svc/calibrate.py        # writes eval/calibration.json
 ```
 
 Measured cost of the full 40-item run: **$0.52** at the Sonnet 4.6 list rate (see Results).
@@ -143,7 +147,7 @@ Measured cost of the full 40-item run: **$0.52** at the Sonnet 4.6 list rate (se
 <!-- RESULTS:BEGIN -->
 **Run:** run 1 of 2 · **Model:** `anthropic/claude-sonnet-4.6` (temp 0) · **Cost:** $0.52
 (269 LLM calls, 112.6k input + 12.3k output tokens) · **Wall-clock:** ~11 min ·
-Raw data: [`eval/results-run1.json`](eval/results-run1.json).
+Data (sanitised, no spec text): [`eval/results-run1.public.json`](eval/results-run1.public.json).
 
 ### Headline
 
@@ -330,8 +334,8 @@ embeddings are billed separately and negligible.
 Temperature is 0, but LLM output is **not bit-stable**: the same requirement can retrieve a
 different clause or reach a different verdict across identical runs. To measure this, the
 full 40-item evaluation was executed **twice, with no code changes between runs** (run 1 →
-[`eval/results-run1.json`](eval/results-run1.json), run 2 →
-[`eval/results-run2.json`](eval/results-run2.json)).
+[`eval/results-run1.public.json`](eval/results-run1.public.json), run 2 →
+[`eval/results-run2.public.json`](eval/results-run2.public.json); sanitised versions of the raw files).
 
 <!-- STABILITY:BEGIN -->
 | framing | run 1 | run 2 |
@@ -379,8 +383,436 @@ variance did not produce a single committed wrong verdict that the other run got
 The forthcoming `extractJSON` fix removes the R26/R21/R31 error class outright.
 <!-- STABILITY:END -->
 
+## Confidence calibration
+
+> *Superseded for the sidecar by the recalculation on the v2 runs (see "Confidence calibration — recomputed on the v2 runs" below). The text and table in this section describe the calibration built from the v1 runs, kept as `eval/calibration-v1-runs.json`.*
+
+**Raw LLM confidence is not calibrated.** The assessor and verifier report numbers like 0.95
+that are not probabilities of being right — R10 above was a wrong `gap` asserted at 0.95 and
+endorsed by the verifier at 0.92. The sidecar therefore no longer reports a "confidence" derived
+from the model's own numbers (the previous version bootstrapped over just two values, which has
+no statistical meaning). It reports the **observed accuracy** of the confidence band the
+prediction falls in, measured on this gold set.
+
+- **Script:** [`vidimus-svc/calibrate.py`](vidimus-svc/calibrate.py) (logic in
+  [`vidimus-svc/calibration.py`](vidimus-svc/calibration.py)) reads
+  [`eval/gold-set.json`](eval/gold-set.json), [`eval/results-run1.public.json`](eval/results-run1.public.json)
+  and [`eval/results-run2.public.json`](eval/results-run2.public.json) and writes
+  [`eval/calibration.json`](eval/calibration.json) (date, model, n per tranche, input hashes).
+  Re-run it after any model, prompt or retrieval change: `python vidimus-svc/calibrate.py`.
+- **Raw confidence** = mean(assessor, verifier), halved if the verifier disagrees.
+  **Target** = verdict equals the human reference.
+- **Tranches:** five fixed equal-width bands of raw confidence (not tuned on the data).
+- **Reference size:** **38 distinct items** with a scored prediction (40 gold items; R21 and R31 failed
+  as system errors in both runs), i.e. **75 predictions** over two runs (R26 also errored in run 2).
+  The two runs score the *same* items, so predictions are **not independent**. Counting every
+  prediction would double the apparent sample size; the table therefore uses **one unit per
+  (item, tranche)**: an item right in one run and wrong in the other counts 0.5. `n`, the `n ≥ 10` rule
+  and the Wilson intervals are all in items.
+- **Interval:** Wilson 95 % per tranche on those item units. **Minimum n = 10 items**: below it the
+  sidecar answers `calibrated: false` with `calibrated_confidence`, `ci_low`, `ci_high` all `null`.
+- **Cross-validation:** 5-fold, **grouped by item** (both runs of an item always fall in the same fold;
+  fold = SHA-256(id) mod 5). For each fold the table is fitted on the other four and applied to the
+  held-out predictions, so the quality figure is never measured on the data that fitted it.
+
+| raw confidence | items (n) | predictions | mean raw | observed accuracy | Wilson 95 % | calibrated |
+|---|--:|--:|--:|--:|---|---|
+| [0.0, 0.2) | 0 | 0 | — | — | — | no |
+| [0.2, 0.4) | 9 | 18 | 0.350 | 22.2 % | 6.3 – 54.7 % | no (n < 10) |
+| [0.4, 0.6) | 3 | 6 | 0.480 | 100 % | 43.9 – 100 % | no (n < 10) |
+| [0.6, 0.8) | 3 | 5 | 0.721 | 33.3 % | 6.1 – 79.2 % | no (n < 10) |
+| [0.8, 1.0] | 24 | 46 | 0.954 | 87.5 % | 69.0 – 95.7 % | **yes** |
+
+**Result (v1.2, replaces the v1.1 figures, which counted the same items twice):**
+
+- **Raw confidence ECE = 0.145** (no fitting involved, so no leakage): the model says ~0.95 on average
+  in the top tranche and is right 87.5 % of the time (plausibly 69–96 % at the item level). The old
+  v1.1 interval for that tranche, [74.3, 93.9] %, was too narrow.
+- **Cross-validated ECE of the calibrated confidence = 0.023, at 61.3 % coverage.** Read both together:
+  only the top tranche has enough items, so this number says that the top-tranche accuracy is stable
+  across folds. It says nothing about the other tranches.
+- **Only one tranche of five is calibrated.** The other 29 of 75 predictions (38.7 %) fall in tranches
+  with fewer than 10 items. For them the sidecar returns `calibrated: false` with no number and no
+  interval, and the pipeline **routes the item to human review** (`low_confidence`), keeping the raw
+  value for display only. This is deliberate: with n < 10 an interval would be fiction. The cost is
+  that low-confidence items always need a human; it grows the review queue, it does not hide errors.
+
+The sidecar loads `calibration.json` and returns, per request: `calibrated`, `calibrated_confidence`
+(= accuracy of the tranche), `ci_low` / `ci_high` (= its Wilson interval), `raw_confidence`, and the
+provenance `calibration_version` and `n_reference`. These, plus `tranche_n`, are part of the
+**signed payload**, so a signature commits to the calibration it was computed with. If the
+tranche is not calibrated, the pipeline keeps the raw number for display only and sends the item
+to human review (`low_confidence`).
+
+**Limits — read before relying on these numbers:**
+
+- **38 items, one model** (`anthropic/claude-sonnet-4.6`). The table is valid for that model on
+  this corpus; any other model or prompt needs its own calibration run.
+- Item units remove the double counting but not all dependence (an item can sit in two tranches), and
+  Wilson on fractional counts is an approximation: treat the interval as indicative.
+- Four of the five tranches are unusable (n < 10; one is empty); the 100 % in [0.4, 0.6) is 3 items,
+  not evidence of high accuracy there.
+- Calibration corrects the *scale* of confidence. It cannot detect errors shared by both LLM
+  judges (R10), and it says nothing about items unlike the gold set.
+- **Review gating changed meaning:** the 0.75 threshold now applies to the empirical tranche accuracy
+  (0.87 in the top tranche), not to the raw number. The v1 results above were produced with the
+  old confidence and are reported as run; re-running the evaluation will give different gating figures.
+
+## v2 — citation guards, verifier-confirmed gaps (**measured**, 2026-10-06)
+
+Two complete passes over the 40 gold items with `GAP_GUARD=verifier`. Everything below is computed from the committed, sanitised result
+files [`eval/results-v2-gapguard-1.public.json`](eval/results-v2-gapguard-1.public.json) and
+[`-2`](eval/results-v2-gapguard-2.public.json) by [`scripts/eval-compare.ts`](scripts/eval-compare.ts) and
+[`scripts/eval-gap-report.ts`](scripts/eval-gap-report.ts). **The v1 sections above are unchanged**; v1 figures quoted here are
+recomputed from `eval/results-run1.public.json` / `-run2.public.json` (sanitised v1 files) with the same code (they reproduce the v1 numbers: 27/40, 24/38 committed, 3 silent errors).
+
+**Setup.** Assessor `anthropic/claude-sonnet-4.6`, temperature 0 (unchanged); verifier `google/gemini-3.8-flash`, temperature 0, pinned with
+`{"only":["google-vertex"],"allow_fallbacks":false,"data_collection":"deny"}` (every resolved verifier call reports provider "Google");
+pre-registration [`eval/PREREGISTRATION-gap-guard.md`](eval/PREREGISTRATION-gap-guard.md) committed at **`ad3175f1ffef683855172fdde73093373483004e`**
+before the first paid call of this evaluation. Cost: 0.5518 USD + 0.5684 USD (OpenRouter generation records; one record unresolved).
+The raw result files contain specification text and model prose, so they are **not** committed (git-ignored); the committed `.public.json`
+files keep ids, verdicts, clause ids, flags, reason codes, confidences and SHA-256 of the quotes (checked for ≥ 9 consecutive spec words by
+[`scripts/check-no-spec-text.ts`](scripts/check-no-spec-text.ts)).
+
+**v2 is a bundle of changes, not a single one** (no ablation was run, so no difference below can be attributed to one of them):
+(1) the assessor prompt asks for a verbatim `quote`; (2) the citation window is the 4000 characters of the clause most relevant to the requirement
+(v1: first 500 characters); (3) deterministic verbatim check of the quote; (4) `gap` verdicts are confirmed by two fixed questions put to the verifier
+(same subject? contradiction?), with NOTEs and bullet-extended passage; (5) the adversarial verifier is now Gemini instead of the assessor's own model;
+(6) the `extractJSON` fix that was committed after the v1 runs is included.
+
+### Headline, v1 vs v2
+
+95 % Wilson intervals are per run (n = 40 or fewer), so wide; the two runs score the same items, so they are not independent samples. "Mean" is the
+mean of the two point estimates. Retrieval here uses the harness definition (exact, family or correct abstention); the v1 text above reports 27/38 because
+it also counted clauses on the gold clause's cross-reference chain, which the harness does not.
+
+| metric (95 % Wilson interval per run) | v1 run 1 | v1 run 2 | v1 mean | v2 run 1 | v2 run 2 | v2 mean |
+|---|---|---|---|---|---|---|
+| Accuracy, N=40 (system errors count as failures) | 27/40 = 67.5 % [52–80] | 25/40 = 62.5 % [47–76] | 65.0 % | 26/40 = 65.0 % [50–78] | 27/40 = 67.5 % [52–80] | 66.3 % |
+| Accuracy over verdict-producing items | 27/38 = 71.1 % [55–83] | 25/37 = 67.6 % [51–80] | 69.3 % | 26/40 = 65.0 % [50–78] | 27/40 = 67.5 % [52–80] | 66.3 % |
+| Coverage (committed / scored) | 24/38 = 63.2 % [47–77] | 22/37 = 59.5 % [43–74] | 61.3 % | 22/40 = 55.0 % [40–69] | 23/40 = 57.5 % [42–71] | 56.3 % |
+| Committed accuracy | 21/24 = 87.5 % [69–96] | 19/22 = 86.4 % [67–95] | 86.9 % | 21/22 = 95.5 % [78–99] | 22/23 = 95.7 % [79–99] | 95.6 % |
+| Silent errors (committed and wrong), count | 3 | 3 | 3.0 | 1 | 1 | 1.0 |
+| Items sent to human review | 14 | 15 | 14.5 | 18 | 17 | 17.5 |
+| System errors | 2 | 3 | 2.5 | 0 | 0 | 0.0 |
+| Retrieval correct (clause found or correct abstention) | 26/38 = 68.4 % [53–81] | 25/37 = 67.6 % [51–80] | — | 24/40 = 60.0 % [45–74] | 25/40 = 62.5 % [47–76] | — |
+| Verdict accuracy given retrieval correct | 24/26 = 92.3 % [76–98] | 23/25 = 92.0 % [75–98] | — | 19/24 = 79.2 % [60–91] | 20/25 = 80.0 % [61–91] | — |
+| Verdict accuracy given retrieval wrong | 3/12 = 25.0 % [9–53] | 2/12 = 16.7 % [5–45] | — | 7/16 = 43.8 % [23–67] | 7/15 = 46.7 % [25–70] | — |
+
+
+Silent errors (committed and wrong), by run:
+  v1 run 1: R06 (conformant→insufficient), R10 (insufficient→gap), R17 (gap→insufficient)
+  v1 run 2: R06 (conformant→insufficient), R10 (insufficient→gap), R17 (gap→insufficient)
+  v2 run 1: R25 (gap→insufficient)
+  v2 run 2: R11 (conformant→insufficient)
+
+What the table says, without spin:
+- **Verdict accuracy did not improve** (N=40 mean 66.3 % vs 65.0 % — the intervals overlap almost entirely).
+- **Committed accuracy is higher** (95.6 % vs 86.9 % mean; per run 21/22 [78–99] and 22/23 [79–99] vs 21/24 [69–96] and 19/22 [67–95]; the intervals overlap), with
+  **1 silent error per run instead of 3**; **coverage is lower** (56.3 % vs 61.3 %: more items go to human review, 17.5 vs 14.5 on average).
+- **System errors: 0 in both passes** (v1: 2 and 3). R21, R26 and R31, the three v1 system errors, all produced a verdict in both v2 passes.
+- **Conformant recall fell** (see below); retrieval-correct is 60.0 % / 62.5 % vs 68.4 % / 67.6 %.
+
+### Per-class precision (P) and recall (R), counts and Wilson 95 % intervals
+
+| class | support (v1 run 1, run 2 / v2 run 1, run 2) | v1 run 1 | v1 run 2 | v2 run 1 | v2 run 2 |
+|---|---|---|---|---|---|
+| conformant | 17, 17 / 17, 17 | P 15/15 = 100.0 % [80–100]<br>R 15/17 = 88.2 % [66–97] | P 14/14 = 100.0 % [78–100]<br>R 14/17 = 82.4 % [59–94] | P 11/11 = 100.0 % [74–100]<br>R 11/17 = 64.7 % [41–83] | P 11/11 = 100.0 % [74–100]<br>R 11/17 = 64.7 % [41–83] |
+| gap | 16, 15 / 16, 16 | P 8/9 = 88.9 % [57–98]<br>R 8/16 = 50.0 % [28–72] | P 7/8 = 87.5 % [53–98]<br>R 7/15 = 46.7 % [25–70] | P 8/8 = 100.0 % [68–100]<br>R 8/16 = 50.0 % [28–72] | P 9/9 = 100.0 % [70–100]<br>R 9/16 = 56.3 % [33–77] |
+| insufficient | 5, 5 / 7, 7 | P 4/14 = 28.6 % [12–55]<br>R 4/5 = 80.0 % [38–96] | P 4/15 = 26.7 % [11–52]<br>R 4/5 = 80.0 % [38–96] | P 7/21 = 33.3 % [17–55]<br>R 7/7 = 100.0 % [65–100] | P 7/20 = 35.0 % [18–57]<br>R 7/7 = 100.0 % [65–100] |
+
+
+### Confusion matrices
+
+  v1 run 1: conformant: [15, 0, 2]  gap: [0, 8, 8]  insufficient: [0, 1, 4]
+  v1 run 2: conformant: [14, 0, 3]  gap: [0, 7, 8]  insufficient: [0, 1, 4]
+  v2 run 1: conformant: [11, 0, 6]  gap: [0, 8, 8]  insufficient: [0, 0, 7]
+  v2 run 2: conformant: [11, 0, 6]  gap: [0, 9, 7]  insufficient: [0, 0, 7]
+
+
+### Agreement between the two runs
+
+
+  v1: verdict, ERROR as its own state, all items 38/40 = 95.0 % [83–99]; verdict over items scored in both 36/37 = 97.3 % [86–100]; cited clause (items citing in both) 27/28 = 96.4 % [82–99]
+  v2: verdict, ERROR as its own state, all items 39/40 = 97.5 % [87–100]; verdict over items scored in both 39/40 = 97.5 % [87–100]; cited clause (items citing in both) 31/32 = 96.9 % [84–99]
+
+
+### Pre-registered criteria (commit `ad3175f1`)
+
+| criterion | outcome |
+|---|---|
+| **Primary — zero false gaps committed over the 40 items, in both passes** | **MET.** 0 false gaps among the 17 committed gaps (8 + 9); the 95 % Wilson upper bound on the false-gap share of committed gaps is 18 % (0/17 = 0.0 % [0–18]). |
+| **Secondary — number of true gaps committed (counts)** | pass 1: **8** of 16 gold gaps; pass 2: **9** of 16. DEV 3 and 3 (of 6); TEST 5 and 6 (of 10). |
+
+Derived rates, each with its interval (pooling the two passes treats them as independent, which they are not: read pooled intervals as optimistic):
+
+| quantity | pass 1 | pass 2 | pooled |
+|---|---|---|---|
+| Gap precision (true gaps / committed gaps) | 8/8 = 100.0 % [68–100] | 9/9 = 100.0 % [70–100] | 17/17 = 100.0 % [82–100] |
+| Gap recall (true gaps / gold gaps) | 8/16 = 50.0 % [28–72] | 9/16 = 56.2 % [33–77] | 17/32 = 53.1 % [36–69] |
+| Raw gaps of the assessor that were true gaps and were committed | 8/8 = 100.0 % [68–100] | 9/9 = 100.0 % [70–100] | 17/17 = 100.0 % [82–100] |
+| Raw gaps of the assessor that were false and were blocked by the guard | 4/4 = 100.0 % [51–100] | 4/4 = 100.0 % [51–100] | 8/8 = 100.0 % [68–100] |
+| Coverage (committed / scored) | 22/40 = 55.0 % [40–69] | 23/40 = 57.5 % [42–71] | 45/80 = 56.2 % [45–67] |
+
+By group (DEV = the 16 items of `eval/frozen-subset.json`, already seen and used to diagnose the previous rule; TEST = the other 24):
+
+| group | pass | coverage | true gaps committed | gap recall | committed gaps | false gaps committed |
+|---|---|---|---|---|---|---|
+| DEV (16 items already seen) | 1 | 5/16 = 31.2 % [14–56] | 3 of 6 gold gaps | 3/6 = 50.0 % [19–81] | 3 | 0 |
+| DEV (16 items already seen) | 2 | 6/16 = 37.5 % [18–61] | 3 of 6 gold gaps | 3/6 = 50.0 % [19–81] | 3 | 0 |
+| TEST (24 other items) | 1 | 17/24 = 70.8 % [51–85] | 5 of 10 gold gaps | 5/10 = 50.0 % [24–76] | 5 | 0 |
+| TEST (24 other items) | 2 | 17/24 = 70.8 % [51–85] | 6 of 10 gold gaps | 6/10 = 60.0 % [31–83] | 6 | 0 |
+
+**How much evidence the primary criterion really gives.** The guard only has something to block when the assessor says `gap` on an item whose
+reference is not `gap`. That happened on **4 items per pass: R10, R14, R30 (DEV) and R20 (TEST)**; all four were blocked in both passes (R10, R30, R20 by
+question (a) "same subject", R14 by question (b), with the clause's 9 NOTEs given to the verifier; whether the NOTEs or the "optionally" wording decided it cannot be told from the reply). In TEST there is a single such item (R20). "Zero false gaps"
+therefore rests on 4 distinct false raw gaps, 3 of which belong to the group that motivated the rule.
+
+### Missed gold gaps come from retrieval and the assessor, not from the guard
+
+Every gold gap that was not committed as a gap had an assessor verdict of `insufficient` **before** any guard ran (`raw_verdict` ≠ `gap`); the guard blocked no
+true gap in either pass. Reasons (pass 1; pass 2 is the same except R25):
+
+| item | clause retrieved vs gold clause | why it was not a committed gap |
+|---|---|---|
+| R09, R13, R33, R37, R39, R40 | none vs 5.3.5.1, 5.3.7.2, 5.2.2.3.1, 5.3.8.2, 5.6.1.4, 5.6.1.4 | retrieval found no clause (`no_clause_found`) |
+| R25 (pass 1 only) | 5.5.5.2 vs 5.5.5.1 | wrong clause retrieved; committed as `insufficient` (silent error). In pass 2 the right clause was found and the gap committed |
+| R17 | 5.5.4.1 = gold | right clause, but the assessor answered `insufficient` with confidence 0.55 → review (same item as v1) |
+
+So 7 of 8 misses in pass 1 (6 of 7 in pass 2) are retrieval failures; the remaining one (R17) is the assessor's judgement. Gap recall is therefore bounded by retrieval
+(and by the assessor), which this change does not touch.
+
+### What got worse: conformant items
+
+Conformant recall dropped from 88.2 % / 82.4 % (v1) to 64.7 % / 64.7 % (11 of 17 in both v2 passes). The six conformant items not answered `conformant` are the same in both passes:
+
+| item | assessor | outcome in v2 |
+|---|---|---|
+| R28 | `conformant`, confidence 0.99 | quote under the 4-word minimum → forced to `insufficient`, review (recorded as `citation_not_verbatim`; now reported as `citation_too_short`, see below) |
+| R14 | `gap` (0.92) | gap blocked by question (b) → `insufficient`, review |
+| R11 | `insufficient` | pass 1: low confidence → review; pass 2: **committed** as `insufficient` (silent error) |
+| R16, R32 | `insufficient`, low confidence | review (`low_confidence`); R32 also retrieved the wrong clause |
+| R12 | no clause retrieved | review (`no_clause_found`) |
+
+Only R28 and R14 are direct effects of the new guards; the other four are assessor or retrieval behaviour that differs from v1 (in v1 these items were answered
+`conformant`; v1 missed R06, R08 and in run 2 R02). Because v2 changed several things at once, **this data cannot say which change caused them**.
+
+### Regression baseline
+
+[`eval/baseline-frozen.json`](eval/baseline-frozen.json) now holds the v2 numbers on the frozen 16-item subset: committed errors 0 (pass 1) and 1 (pass 2; R11), so the
+worst run is **1** and the gate fails above **2** (worst run + 1), as before. It does not gate coverage, which on this subset fell from 10 committed items per run (v1)
+to 5 and 6 (v2). The live check is `npm run eval:regression` (it sets `GAP_GUARD=verifier`, the Gemini verifier and the provider pin).
+
+### Spec text in committed files (audit finding)
+
+`scripts/check-no-spec-text.ts` found runs of ≥ 9 consecutive spec words in files **committed before the v2 work**: `eval/results-run1.json` / `-run2.json` (model notes quote clauses), `eval/gold-set.json`
+(requirement and justification texts), `examples/ts38331-extrait.txt` and two test fixtures. **Step 1 of the cleanup plan (`docs/spec-text-cleanup-plan.md`) has since been applied to the working tree**: the v1 result files are replaced by
+sanitised `*.public.json` versions (the v1 numbers above reproduce identically from them), the example extract and the test fixtures are invented text, and the justification of R07 is paraphrased. The four `requirement`
+texts of the gold set (R02, R08, R33, R40; ≤ 12 consecutive words each) are kept on purpose: they are the inputs of the benchmark. The old text remains in git history, which has **not** been rewritten.
+
+
+### Confidence calibration — recomputed on the v2 runs
+
+[`vidimus-svc/calibrate.py`](vidimus-svc/calibrate.py) was re-run on the two v2 passes (same method as above: one unit per (item, tranche), item-grouped 5-fold
+cross-validation, Wilson 95 %, minimum 10 items per tranche). The table built from the v1 runs is kept as
+[`eval/calibration-v1-runs.json`](eval/calibration-v1-runs.json) (and reproduces exactly: `cal-ad31e4132318`); the sidecar now loads
+[`eval/calibration.json`](eval/calibration.json), version **`cal-102be0bdb9d1`**.
+
+| | v1 runs (`cal-ad31e4132318`) | v2 runs (`cal-102be0bdb9d1`) |
+|---|---|---|
+| items with a scored prediction / predictions / system errors excluded | 38 / 75 / 5 | 40 / 80 / 0 |
+| ECE of the raw confidence | 0.145 | 0.132 |
+| ECE of the calibrated confidence (5-fold CV by item) | 0.023 | 0.003 |
+| coverage of the calibration (predictions with a calibrated tranche) | 61.3 % (46/75; the other 29 go to human review) | 65.0 % (52/80; the other 28 go to human review) |
+| **top tranche [0.8, 1.0]**: items / mean raw confidence | 24 / 0.954 | 26 / 0.983 |
+| **top tranche**: observed accuracy [Wilson 95 %] | 87.5 % [69.0–95.7] | 94.2 % [78.4–98.7] |
+| other non-empty tranches (items; none reaches 10) | 9, 3, 3 | 8, 4, 2 |
+
+**Did the top tranche change? Yes, moderately.** Its observed accuracy rose from 87.5 % to 94.2 % and the gap between mean raw
+confidence and accuracy shrank (from 7.9 to 4.1 points), but the two intervals overlap
+widely, so this is not evidence of a real difference. For the same input the sidecar used to answer 0.875 [0.690, 0.957] and now answers 0.942 [0.784, 0.987].
+
+How to read it:
+- What is calibrated is the **guarded pipeline's final verdict**: cases where the assessor was confidently wrong and a guard forced `insufficient` (R10, R30…) now count as correct, which
+  mechanically raises the top tranche. It is not an improvement of the LLM's own confidence.
+- The cross-validated ECE (0.003) covers only the top tranche (it is the only calibrated one): it says that tranche's accuracy is stable across folds, nothing about the others.
+  All three other non-empty tranches still have fewer than 10 items, so 28 of 80 predictions are answered `calibrated: false` and routed to human review.
+- The same 40 items were used to design the guards and to calibrate; the intervals are item-level but ignore that dependence.
+
+## Ablation des gardes, rejeu hors ligne
+
+**What this is.** The two committed v2 passes keep, for every item, the assessor's verdict and quote *before* any guard (`raw_verdict`, `assessor_quote`). The two guards
+are replayed offline on those stored outputs in four configurations — (a) none, (b) verbatim check only, (c) gap guard only, (d) both — by
+[`scripts/eval-ablation.ts`](scripts/eval-ablation.ts) from the sanitised files. Check — configuration (d) reproduces the recorded v2 outcome (verdict, committed or not, reason) for 80/80 items in both passes.
+
+**What is NOT replayed.** Everything upstream of the guards keeps its v2 value in all four rows: the assessor prompt (asks for a quote), the 4000-character citation window,
+retrieval, the `extractJSON` fix and the verifier model. The ablation therefore says what the *guards* did, and nothing about those other changes.
+
+**Fresh verifier calls.** The adversarial verifier answers about a given verdict; where a configuration puts a verdict in front of it that the run never did (the raw `gap` of
+R10, R14, R20, R30 and the raw `conformant` of R28), its answer comes from a fresh call to the same verifier (`google/gemini-3.8-flash`, pin `google-vertex`, no assessor call):
+**10 calls** (5 per pass), stored as booleans in [`eval/ablation-verifier-calls.json`](eval/ablation-verifier-calls.json). Their cost and provider records could not be
+retrieved from OpenRouter (lookups returned 404); at roughly 1.3k input tokens per call the cost is on the order of 0.01–0.02 USD, far below the 0.5 USD cap, but it was not measured.
+Those answers are single temperature-0 samples; a rerun could differ.
+
+**Definitions.** Committed = not sent to review. Gap recall = true gaps committed / 16 gold gaps; gap precision = true gaps / committed gaps; conformant recall = items whose final
+verdict is `conformant` / 17 gold conformant. 95 % Wilson intervals; the two passes use the same items, so they are not independent.
+
+| configuration | pass | accuracy N=40 | coverage | committed accuracy [Wilson 95 %] | silent errors (committed and wrong) | conformant recall | gap recall (true gaps committed / gold gaps) | gap precision (true / committed gaps) | false gaps committed |
+|---|---|---|---|---|---|---|---|---|---|
+| (a) no guard | 1 | 24/40 = 60.0 % [45–74] | 26/40 = 65.0 % [50–78] | 22/26 = 84.6 % [66–94] | R10(insufficient→gap), R20(insufficient→gap), R25(gap→insufficient), R30(insufficient→gap) | 12/17 = 70.6 % [47–87] | 8/16 = 50.0 % [28–72] | 8/11 = 72.7 % [43–90] | R10, R20, R30 |
+| (a) no guard | 2 | 25/40 = 62.5 % [47–76] | 26/40 = 65.0 % [50–78] | 23/26 = 88.5 % [71–96] | R10(insufficient→gap), R11(conformant→insufficient), R30(insufficient→gap) | 12/17 = 70.6 % [47–87] | 9/16 = 56.3 % [33–77] | 9/11 = 81.8 % [52–95] | R10, R30 |
+| (b) verbatim check only | 1 | 23/40 = 57.5 % [42–71] | 25/40 = 62.5 % [47–76] | 21/25 = 84.0 % [65–94] | R10(insufficient→gap), R20(insufficient→gap), R25(gap→insufficient), R30(insufficient→gap) | 11/17 = 64.7 % [41–83] | 8/16 = 50.0 % [28–72] | 8/11 = 72.7 % [43–90] | R10, R20, R30 |
+| (b) verbatim check only | 2 | 24/40 = 60.0 % [45–74] | 25/40 = 62.5 % [47–76] | 22/25 = 88.0 % [70–96] | R10(insufficient→gap), R11(conformant→insufficient), R30(insufficient→gap) | 11/17 = 64.7 % [41–83] | 9/16 = 56.3 % [33–77] | 9/11 = 81.8 % [52–95] | R10, R30 |
+| (c) gap guard only | 1 | 27/40 = 67.5 % [52–80] | 23/40 = 57.5 % [42–71] | 22/23 = 95.7 % [79–99] | R25(gap→insufficient) | 12/17 = 70.6 % [47–87] | 8/16 = 50.0 % [28–72] | 8/8 = 100.0 % [68–100] | none |
+| (c) gap guard only | 2 | 28/40 = 70.0 % [55–82] | 24/40 = 60.0 % [45–74] | 23/24 = 95.8 % [80–99] | R11(conformant→insufficient) | 12/17 = 70.6 % [47–87] | 9/16 = 56.3 % [33–77] | 9/9 = 100.0 % [70–100] | none |
+| (d) both (= v2) | 1 | 26/40 = 65.0 % [50–78] | 22/40 = 55.0 % [40–69] | 21/22 = 95.5 % [78–99] | R25(gap→insufficient) | 11/17 = 64.7 % [41–83] | 8/16 = 50.0 % [28–72] | 8/8 = 100.0 % [68–100] | none |
+| (d) both (= v2) | 2 | 27/40 = 67.5 % [52–80] | 23/40 = 57.5 % [42–71] | 22/23 = 95.7 % [79–99] | R11(conformant→insufficient) | 11/17 = 64.7 % [41–83] | 9/16 = 56.3 % [33–77] | 9/9 = 100.0 % [70–100] | none |
+
+Per item (verdict / outcome under each configuration):
+
+| item (gold) | pass | assessor before guards | (a) no guard | (b) verbatim check only | (c) gap guard only | (d) both (= v2) | which guard changed it |
+|---|---|---|---|---|---|---|---|
+| R11 (conformant) | 1 | insufficient, conf 0.7 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+| R11 (conformant) | 2 | insufficient, conf 0.85 | insufficient / committed | insufficient / committed | insufficient / committed | insufficient / committed | none: the assessor's own output, retrieval and confidence rule |
+| R12 (conformant) | 1 | insufficient, conf 0.2, no clause | insufficient / review: no_clause_found | insufficient / review: no_clause_found | insufficient / review: no_clause_found | insufficient / review: no_clause_found | none: the assessor's own output, retrieval and confidence rule |
+| R12 (conformant) | 2 | insufficient, conf 0.2, no clause | insufficient / review: no_clause_found | insufficient / review: no_clause_found | insufficient / review: no_clause_found | insufficient / review: no_clause_found | none: the assessor's own output, retrieval and confidence rule |
+| R16 (conformant) | 1 | insufficient, conf 0.1 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+| R16 (conformant) | 2 | insufficient, conf 0.1 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+| R28 (conformant) | 1 | conformant, conf 0.99 | conformant / committed | insufficient / review: citation_not_verbatim | conformant / committed | insufficient / review: citation_not_verbatim | verbatim check |
+| R28 (conformant) | 2 | conformant, conf 0.99 | conformant / committed | insufficient / review: citation_not_verbatim | conformant / committed | insufficient / review: citation_not_verbatim | verbatim check |
+| R32 (conformant) | 1 | insufficient, conf 0.55 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+| R32 (conformant) | 2 | insufficient, conf 0.55 | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | insufficient / review: low_confidence | none: the assessor's own output, retrieval and confidence rule |
+
+
+### Reading
+
+1. **The gap guard is what stops the false gaps; the other-family verifier alone does not.** Without it ((a), (b)) the pipeline commits false gaps: R10, R20, R30 in pass 1 and R10, R30 in pass 2.
+   The adversarial verifier disagreed on R14 (both passes) and on R20 (pass 2 only) and agreed on R10 and R30. With the gap guard ((c), (d)) no false gap is committed, and true gaps committed are unchanged
+   (8 and 9): the guard blocked no true gap.
+2. **The verbatim check, in this data, only cost correct answers.** Its only trigger in 80 item-runs was R28 (gold `conformant`, assessor `conformant` at 0.99, in both passes): without the check it is a correct,
+   committed verdict ((a), (c)); with it, `insufficient` in review ((b), (d)). It cost one correct committed item per pass (accuracy N=40 −2.5 points, conformant recall −5.9 points). The quote was **not fabricated**: it is
+   3 words long and found verbatim in the clause; it was rejected by the 4-word minimum of the check. That is a false positive of the minimum-length rule, not a caught invention. This ablation cannot show the check's protective value
+   (no fabricated quote occurred), only this cost; no guard was changed.
+3. **R11, R12, R16, R32: none of the guards changed the verdict or the review.** R11: the assessor answered `insufficient` (confidence 0.7 → review in pass 1; 0.85 → committed, silent error, in pass 2). R12: no clause retrieved.
+   R16: `insufficient` at confidence 0.1. R32: `insufficient` at 0.55 with a wrong clause. Identical outcome in (a), (b), (c), (d). R28 is the one guard effect (verbatim check). R14, not in your list, is the gap guard (question (b)).
+4. **Most of the conformant-recall drop is upstream of the guards.** Before any guard ((a)) conformant recall is already 12/17 = 70.6 % [47–87] in both passes, against 88.2 % and 82.4 % in v1; the guards take it to 11/17 (R28). The remaining difference with v1 comes from the
+   assessor's prompt, the window, retrieval or run-to-run variation, none of which is replayed here.
+5. **Accuracy by configuration (N=40, per pass):** (c) 67.5 / 70.0 %, (d) 65.0 / 67.5 %, (a) 60.0 / 62.5 %, (b) 57.5 / 60.0 %. The gap guard raises it (it turns false gaps into correct `insufficient`), the verbatim check lowers it by one item here.
+
+## Ablation de la fenêtre, items conformant seulement
+
+**Question.** Does the size of the citation window explain the drop of conformant recall between v1 and v2? Only the 17 items whose human reference verdict is `conformant` ([`eval/conformant-subset.json`](eval/conformant-subset.json)) were replayed, **evaluator included**,
+with the window set to **500 characters** (`CITATION_WINDOW_CHARS=500`), the v2 guards active (`GAP_GUARD=verifier`), the same models (assessor `anthropic/claude-sonnet-4.6`; verifier `google/gemini-3.8-flash` pinned to `google-vertex`), temperature 0, **two passes**.
+The 4000-character arm is **not re-run**: it is the same 17 items taken from the two existing v2 passes. The default `CITATION_WINDOW_CHARS` stays at 4000. This is a diagnostic, not a tuning.
+
+**Read this first.**
+- **The two arms were run at different times** (the 4000 arm on 2026-10-06 during the v2 evaluation, the 500 arm later the same day, after the code had changed only by the `citation_too_short` renaming); any provider or model drift between the two moments is confounded with the window.
+- **These 17 items have already been seen** (v1 failure analysis, v2 results, the guard ablation, and R11, R12, R16, R28, R32 were examined individually). They are not an independent sample, and two passes of 17 items measure stability, not generalisation.
+- The 500-character window here is the **relevance-selected** 500 characters of the clause (`lib/citation-window.ts`), not the first 500 characters that v1 used.
+
+| window | pass | verdicts: conformant / gap / insufficient | conformant recall [Wilson 95 %] | committed | sent to review (reasons) | system errors | real cost |
+|---|---|---|---|---|---|---|---|
+| 4000 | 1 | 11 / 0 / 6 | 11/17 = 64.7 % [41–83] | 10/17 (10 correct, no silent error) | 7: 1 verifier_disagreement, 3 low_confidence, 1 no_clause_found, 1 gap_no_contradiction, 1 citation_not_verbatim | 0 | $0.1959 |
+| 4000 | 2 | 11 / 0 / 6 | 11/17 = 64.7 % [41–83] | 11/17 (10 correct, silent error: R11) | 6: 1 verifier_disagreement, 1 no_clause_found, 1 gap_no_contradiction, 2 low_confidence, 1 citation_not_verbatim | 0 | $0.2104 |
+| 500 | 1 | 11 / 0 / 6 | 11/17 = 64.7 % [41–83] | 11/17 (11 correct, no silent error) | 6: 3 low_confidence, 1 no_clause_found, 1 gap_no_contradiction, 1 citation_too_short | 0 | $0.1450 (+9 unresolved lookups) |
+| 500 | 2 | 12 / 0 / 5 | 12/17 = 70.6 % [47–87] | 11/17 (11 correct, no silent error) | 6: 2 low_confidence, 1 no_clause_found, 1 gap_no_contradiction, 1 citation_too_short, 1 verifier_disagreement | 0 | $0.1507 (+4 unresolved lookups) |
+
+Cost of the 500 arm: 0.1450 + 0.1507 = **0.2957 USD** (13 of 184 OpenRouter generation records could not be retrieved, so slightly under-counted); cost of the same 17 items in the 4000 arm: 0.1959 + 0.2104 = 0.4063 USD. Every resolved verifier call reports provider "Google".
+
+### R11, R12, R16, R32 — verdict / assessor confidence (outcome)
+
+| item | 4000, pass 1 | 4000, pass 2 | 500, pass 1 | 500, pass 2 |
+|---|---|---|---|---|
+| R11 | insufficient / 0.7 (low_confidence) | insufficient / 0.85 (committed) | conformant / 0.99 (committed) | conformant / 0.99 (committed) |
+| R12 | insufficient / 0.2 (no_clause_found) | insufficient / 0.2 (no_clause_found) | insufficient / 0.2 (no_clause_found) | insufficient / 0.2 (no_clause_found) |
+| R16 | insufficient / 0.1 (low_confidence) | insufficient / 0.1 (low_confidence) | insufficient / 0.45 (low_confidence) | insufficient / 0.45 (low_confidence) |
+| R32 | insufficient / 0.55 (low_confidence) | insufficient / 0.55 (low_confidence) | insufficient / 0.55 (low_confidence) | conformant / 0.85 (verifier_disagreement) |
+
+### What changes between the arms
+- **Conformant recall: no detectable difference** (4000: 11/17 and 11/17; 500: 11/17 and 12/17; the intervals overlap almost completely).
+- **Verdict flips on three items**: R11 becomes `conformant`, committed, confidence 0.99 in both 500 passes (at 4000 it was `insufficient`: review in pass 1, and a committed silent error in pass 2); R02 goes from `conformant` (sent to review for a verifier disagreement) to `insufficient` with confidence 0.0 / 0.1 (review);
+  R32 is `conformant` (review, verifier disagreement) in 500 pass 2 only. Net effect: committed items 11 and 11 at 500 (all correct) vs 10 and 11 at 4000 (one silent error, R11, in pass 2).
+- **R12** is unchanged (no clause retrieved, confidence 0.2); **R16** stays `insufficient` in review (confidence 0.45 instead of 0.1); **R28** is `insufficient` in review in both arms (the exact 3-word quote, now reported as `citation_too_short` in the 500 arm; `citation_not_verbatim` in the older 4000 files).
+- **Stability between the two passes**: 17/17 identical verdicts at 4000, 16/17 at 500 (R32).
+
+### Reading
+Shrinking the window to 500 characters does **not** bring conformant recall back to its v1 level (88.2 % and 82.4 % in v1): it stays at 64.7–70.6 %. Within this design the window does not explain the drop, which must come from other v2 changes that this ablation does not isolate
+(the assessor prompt that asks for a quote, the verifier model, retrieval variation). The window does move individual items (R11 up, R02 down) in both directions, with one-item differences that two passes of 17 items cannot separate from run-to-run variation.
+The 500-character arm is about a quarter cheaper (0.30 vs 0.41 USD). No default was changed. The raw 500 results are git-ignored; their sanitised versions are `eval/results-v2-window500-{1,2}.public.json`.
+
+## Limites de cette évaluation (limits of this evaluation)
+
+This section is about the evaluation of the `GAP_GUARD=verifier` rule (pre-registered in
+[`eval/PREREGISTRATION-gap-guard.md`](eval/PREREGISTRATION-gap-guard.md)). The gold set is **no longer pristine for this rule**:
+
+- The author of the rule (this project) had read the v1 failure analysis above — which items fail, why, and the R10 case study —
+  before designing it. The 16 DEV items were additionally used to diagnose why the previous lexical rule blocked true gaps.
+- The "permitted / optionally" clause of question (b) was written after seeing R14 (a requirement more specific than an
+  "optionally" clause in the specification).
+- The handling of NOTEs (attached to the verifier's input, with the "NOTE … permitted or excepted" sentence) was designed with
+  R39/R40 (NOTE-based loopholes, see *Gold set → Composition*) in mind; they are in the TEST group.
+- The TEST group (24 items) contains **only 10 true gaps** (16 gold gaps − 6 in DEV): recall there moves in steps of 10 points
+  and one item decides a criterion.
+- Two passes of the same 40 items at temperature 0 measure stability, not independent samples; one assessor model, one verifier
+  model, one spec extract.
+
+- **v2 is a bundle of changes** (assessor prompt, citation window, deterministic guard, verifier-confirmed gaps, verifier model, JSON fix); no ablation was run, so the drop in conformant recall
+  and the gain in committed accuracy cannot be attributed to a single change.
+- The primary criterion ("zero false gaps") is exercised by **4 distinct false raw gaps** (R10, R14, R30 in DEV; R20 in TEST); it is a weak test of precision, as its interval shows (upper bound 18 %).
+- Two passes at temperature 0 of the same 40 items; every interval treats runs as independent and is therefore optimistic.
+
+Nothing was tuned on the TEST group: prompts, caps and criteria were committed before the first paid call.
+
+## History rewrite
+
+The git history of this repository was rewritten to remove third-party specification text (© 3GPP/ETSI) that earlier commits contained: `eval/results-run1.json`, `eval/results-run2.json`, `examples/ts38331-extrait.txt` (and its former root path), the spec-text versions of `eval/gold-set.json`, and spec sentences inside the test fixtures `scripts/test-citation-check.ts` and `scripts/test-gap-check.ts` (replaced by invented text, line by line, with the wording of the current versions). Details: `docs/spec-text-cleanup-plan.md`. Every commit after the first modified one got a new SHA, including the pre-registration commit.
+
+Proof of the original history (pre-rewrite):
+
+| | |
+|---|---|
+| original pre-registration commit | `ad3175f1ffef683855172fdde73093373483004e` (2026-10-06T19:37:18+08:00); intact inside the bundle below |
+| SHA-256 of `eval/PREREGISTRATION-gap-guard.md` | `77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014` (identical in the old and the new commit: the file is not touched) |
+| Ed25519 attestation of that hash | `docs/preregistration.md`. It is signed with the sidecar's **development key**, which is **not listed** in `vidimus-svc/trusted-keys.json` (the list is empty), so a verifier pinned to that file rejects it. No production key exists on the machine that produced this record, so no second attestation has been made. |
+| backup of the original history | `spec-conformance-agentic-before-rewrite-20261006.bundle`, `git bundle verify`: complete history, head `bd74c52` |
+| SHA-256 of the bundle | `2835e695090552b5ee099ea9e9a8d2d0398e17edbc0161b0fa7e2f0472a38db4` |
+
+The bundle contains the spec text and is **never published**; the author keeps it privately.
+
+After the rewrite:
+
+| | |
+|---|---|
+| rewrite date (UTC) | 2026-10-19 |
+| tool | `git filter-repo`; commit messages, authors and dates preserved; only abbreviated hashes quoted in commit messages were remapped |
+| pre-registration commit, new SHA | `9571ff7e5366904799b935afd39819a45c1bf59e` |
+| signed tag | `prereg-v2` on that commit (SSH signature) |
+| full old → new commit mapping | `docs/history-rewrite-commit-map.txt` |
+| reason | third-party specification text (© 3GPP/ETSI) in earlier commits |
+
+Verify the tag (needs the `allowed_signers` file at the repository root):
+
+```bash
+git -c gpg.ssh.allowedSignersFile=allowed_signers tag -v prereg-v2
+git show prereg-v2:eval/PREREGISTRATION-gap-guard.md | shasum -a 256   # must print the SHA-256 above
+```
+
+`eval/gold-set.json`: requirement fields are paraphrases derived from the cited clauses; up to 12 consecutive words may coincide with spec wording; no clause text is reproduced.
+
+Text in this file and in other documents that cites `ad3175f1` refers to the original SHA, which exists only in the private bundle; the new SHA is above.
+
 ## Changelog
 
+- **Reason rename (2026-10-06)** — `citation_too_short` when the quote is exact but under the 4-word minimum; `citation_not_verbatim` only when the quote is missing or absent from the clause. The minimum is unchanged. The committed v2 result files keep the old name (the replay in *Ablation des gardes* recognises both).
+- **Window ablation (2026-10-06)** — 17 conformant items, 500-character window, 2 passes vs the existing 4000-character passes; see *Ablation de la fenêtre*. Default unchanged.
+- **v2 ablation (2026-10-06)** — offline replay of the guards (none / verbatim / gap / both), 10 fresh verifier calls; see *Ablation des gardes*.
+- **v2 (2026-10-06)** — citation guards, verifier-confirmed gaps (`GAP_GUARD=verifier`), other-family verifier, sanitised results, v2 regression baseline and recalibrated confidence (`cal-102be0bdb9d1`). Measured on two full passes; pre-registration `ad3175f1`. See *v2*. v1 sections unchanged.
+- **v1.2 (2026-10-06)** — calibration re-done at item level with item-grouped 5-fold cross-validation;
+  tranches need ≥ 10 distinct items (only the top one qualifies), others go to human review.
+  Supersedes the v1.1 table.
+- **v1.1 (2026-10-06)** — confidence calibration added (see *Confidence calibration*): empirical
+  tranche accuracy with Wilson 95 % intervals replaces the 2-sample bootstrap in the sidecar. The v1
+  results are unchanged and were measured with the previous confidence.
 - **v1 (2026-07-08)** — first evaluation. Gold set of 40 human-validated requirements over a
   266-clause TS 38.331 v19.3.0 extract; harness [`scripts/eval.ts`](scripts/eval.ts); model
   `anthropic/claude-sonnet-4.6`. Two identical runs for stability. Known issue: two
@@ -392,6 +824,7 @@ The forthcoming `extractJSON` fix removes the R26/R21/R31 error class outright.
 
 ## Threats to validity
 
+- **Calibration is thin** (38 items, one model, one calibrated tranche): see *Confidence calibration*.
 - **Small n (40).** Per-class figures (especially `insufficient`, n=7) have wide
   confidence intervals; treat them as directional, not definitive.
 - **Author-adjacent gold set.** Requirements were drafted and human-validated by the

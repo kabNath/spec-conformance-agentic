@@ -1,0 +1,52 @@
+{
+  "id": "doc-15",
+  "document": "doc-15.txt",
+  "sentences": [
+    "The terminal sends SessionRequest, waits for SessionAccept, and then enters the active state.",
+    "If the network never answers, the terminal stays in the idle state.",
+    "During the active state it sends a keep-alive message every ten seconds.",
+    "A missing keep-alive answer is counted as a failure.",
+    "After three failures the session is released.",
+    "The design follows best practice."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall send a SessionRequest message."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 1,
+      "text": "The terminal shall wait for a SessionAccept message after sending the SessionRequest message."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 1,
+      "text": "The terminal shall enter the active state after receiving the SessionAccept message."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 2,
+      "text": "If the network never answers, the terminal shall stay in the idle state."
+    },
+    {
+      "id": "r5",
+      "source_sentence": 3,
+      "text": "During the active state, the terminal shall send a keep-alive message every ten seconds."
+    },
+    {
+      "id": "r6",
+      "source_sentence": 4,
+      "text": "A missing keep-alive answer shall be counted as a failure."
+    },
+    {
+      "id": "r7",
+      "source_sentence": 5,
+      "text": "After three failures, the session shall be released."
+    }
+  ],
+  "non_requirement_sentences": [
+    6
+  ]
+}

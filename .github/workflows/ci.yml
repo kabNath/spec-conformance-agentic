@@ -11,6 +11,9 @@ jobs:
       - run: npm ci || npm install
       - run: npx prisma generate
       - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm test            # vitest: MCP server (schemas, errors, cross-organisation isolation) + pipeline characterisation
+      - run: npm run lint
       - run: npm run build
 
   # Runs in parallel with `build` (no `needs:`); its status is a separate,
@@ -22,7 +25,32 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - name: Install service deps (real vidimus lib) + test client
-        run: pip install -r vidimus-svc/requirements.txt httpx
+      - name: Resolve the vidimus ref (same branch name if it exists upstream, else main)
+        id: vref
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          VIDIMUS_REF: ${{ vars.VIDIMUS_REF }}
+        run: |
+          bash .github/scripts/test-resolve-vidimus-ref.sh
+          echo "ref=$(bash .github/scripts/resolve-vidimus-ref.sh)" >> "$GITHUB_OUTPUT"
+      - name: Install service deps + vidimus from the resolved ref
+        run: |
+          echo "vidimus ref: ${{ steps.vref.outputs.ref }}"
+          grep -v '^vidimus' vidimus-svc/requirements.txt > /tmp/svc-requirements.txt
+          grep -v "^-r" vidimus-svc/requirements-dev.txt > /tmp/svc-dev.txt
+          pip install -r /tmp/svc-requirements.txt -r /tmp/svc-dev.txt
+          pip install "vidimus @ git+https://github.com/kabNath/vidimus.git@${{ steps.vref.outputs.ref }}"
       - name: Test /attest — HTTP 200 + valid Ed25519 signature
         run: python vidimus-svc/test_attest.py
+      - name: Test calibration (Wilson, tranches, signed fields, reproducibility)
+        run: python vidimus-svc/test_calibration.py
+      - name: Test signing key (startup policy, /pubkey, rotation)
+        run: python vidimus-svc/test_keys.py
+      - name: Test the demo attestation trio (valid / tampered / wrong key)
+        run: python vidimus-svc/test_verdict_files.py
+      - name: /verify and /sign-call round trips
+        run: python vidimus-svc/test_verify_and_sign.py
+      - name: Test inside the image (Dockerfile "test" stage runs test_attest / test_calibration / test_keys)
+        run: docker build -f vidimus-svc/Dockerfile --target test -t vidimus-svc:test .
+      - name: Build the runtime image (catches Dockerfile / dependency breakage)
+        run: docker build -f vidimus-svc/Dockerfile -t vidimus-svc:ci .

@@ -1,0 +1,55 @@
+{
+  "_note": "Fresh verifier calls for counterfactual states of eval-ablation.ts. Booleans and numbers only.",
+  "verifier": "google/gemini-3.8-flash",
+  "provider_pin": {
+    "only": [
+      "google-vertex"
+    ],
+    "allow_fallbacks": false,
+    "data_collection": "deny"
+  },
+  "total_cost_usd": null,
+  "calls": {
+    "1|R10|gap|quote": {
+      "agrees": true,
+      "confidence": 0.95
+    },
+    "1|R14|gap|quote": {
+      "agrees": false,
+      "confidence": 0.95
+    },
+    "1|R20|gap|quote": {
+      "agrees": true,
+      "confidence": 0.95
+    },
+    "1|R28|conformant|quote": {
+      "agrees": true,
+      "confidence": 1
+    },
+    "1|R30|gap|quote": {
+      "agrees": true,
+      "confidence": 1
+    },
+    "2|R10|gap|quote": {
+      "agrees": true,
+      "confidence": 0.95
+    },
+    "2|R14|gap|quote": {
+      "agrees": false,
+      "confidence": 0.95
+    },
+    "2|R20|gap|quote": {
+      "agrees": false,
+      "confidence": 0.95
+    },
+    "2|R28|conformant|quote": {
+      "agrees": true,
+      "confidence": 1
+    },
+    "2|R30|gap|quote": {
+      "agrees": true,
+      "confidence": 0.99
+    }
+  },
+  "cost_note": "Cost and provider lookups returned 404 (not measured); estimated 0.01-0.02 USD for 10 calls."
+}

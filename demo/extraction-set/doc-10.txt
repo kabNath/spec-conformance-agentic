@@ -1,0 +1,3 @@
+First update handling
+
+Our terminal should start the session within one second of power-on. It uses the default channel parameters for the first SessionUpdate message. The first update is the most important one for users. A second update is processed only after the first one has been completed.

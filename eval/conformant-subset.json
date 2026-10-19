@@ -1,0 +1,23 @@
+{
+  "name": "conformant-17",
+  "rule": "all items whose human reference verdict is 'conformant' (17 of 40)",
+  "ids": [
+    "R01",
+    "R02",
+    "R04",
+    "R06",
+    "R08",
+    "R11",
+    "R12",
+    "R14",
+    "R16",
+    "R22",
+    "R23",
+    "R27",
+    "R28",
+    "R32",
+    "R34",
+    "R35",
+    "R38"
+  ]
+}

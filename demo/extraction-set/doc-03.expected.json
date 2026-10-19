@@ -1,0 +1,41 @@
+{
+  "id": "doc-03",
+  "document": "doc-03.txt",
+  "sentences": [
+    "The Cobalt terminal applies the parameters of every SessionUpdate message in the order received.",
+    "It never applies two parameters at the same time.",
+    "When all parameters have been applied, it sends a SessionUpdateComplete message.",
+    "When a parameter cannot be applied, it starts the recovery steps and does not send a SessionUpdateComplete message.",
+    "This behaviour was validated in the lab last year."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall apply the parameters of every SessionUpdate message in the order received."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "The terminal shall not apply two parameters at the same time."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 3,
+      "text": "When all parameters have been applied, the terminal shall send a SessionUpdateComplete message."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 4,
+      "text": "When a parameter cannot be applied, the terminal shall start the recovery steps."
+    },
+    {
+      "id": "r5",
+      "source_sentence": 4,
+      "text": "When a parameter cannot be applied, the terminal shall not send a SessionUpdateComplete message."
+    }
+  ],
+  "non_requirement_sentences": [
+    5
+  ]
+}

@@ -1,0 +1,10 @@
+# Only what vidimus-svc/Dockerfile COPYs; keeps secrets (.env*), node_modules, etc. out of the context.
+*
+!vidimus-svc/
+!eval/
+**/__pycache__
+vidimus-svc/Dockerfile*
+eval/results*.json
+!eval/results-run1.json
+!eval/results-run2.json
+!eval/results-v2-gapguard-*.public.json

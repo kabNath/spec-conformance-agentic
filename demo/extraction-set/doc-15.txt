@@ -1,0 +1,3 @@
+Keep-alive
+
+The terminal sends SessionRequest, waits for SessionAccept, and then enters the active state. If the network never answers, the terminal stays in the idle state. During the active state it sends a keep-alive message every ten seconds. A missing keep-alive answer is counted as a failure. After three failures the session is released. The design follows best practice.

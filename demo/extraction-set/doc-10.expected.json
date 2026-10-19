@@ -1,0 +1,30 @@
+{
+  "id": "doc-10",
+  "document": "doc-10.txt",
+  "sentences": [
+    "Our terminal should start the session within one second of power-on.",
+    "It uses the default channel parameters for the first SessionUpdate message.",
+    "The first update is the most important one for users.",
+    "A second update is processed only after the first one has been completed."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal should start the session within one second of power-on."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "The terminal shall use the default channel parameters for the first SessionUpdate message."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 4,
+      "text": "The terminal shall process a second update only after the first one has been completed."
+    }
+  ],
+  "non_requirement_sentences": [
+    3
+  ]
+}

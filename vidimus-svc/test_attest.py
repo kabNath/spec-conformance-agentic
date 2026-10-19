@@ -12,6 +12,7 @@ from pathlib import Path
 
 # Ephemeral keys dir so the test never touches /data.
 os.environ.setdefault("VIDIMUS_KEYS_DIR", tempfile.mkdtemp(prefix="vidimus-keys-"))
+os.environ.setdefault("VIDIMUS_ALLOW_EPHEMERAL", "1")  # test keys dir starts empty
 # Make `import main` work regardless of the current working directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -37,7 +38,8 @@ resp = client.post(
 
 assert resp.status_code == 200, f"expected 200, got {resp.status_code}: {resp.text}"
 d = resp.json()
-for field in ("calibrated_confidence", "ci_low", "ci_high", "content_hash", "signature", "public_key"):
+for field in ("calibrated", "calibrated_confidence", "ci_low", "ci_high", "raw_confidence",
+              "calibration_version", "n_reference", "content_hash", "signature", "public_key"):
     assert field in d, f"missing response field: {field}"
 
 # Signature must verify under the returned public key (real vidimus primitives).

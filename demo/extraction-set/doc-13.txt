@@ -1,0 +1,3 @@
+Recovery
+
+Recovery steps start automatically when a SessionUpdate parameter cannot be applied. They are limited to ten seconds. If recovery fails, the terminal releases the session and sends a SessionRequest message after one minute. Recovery was the hardest part to implement.

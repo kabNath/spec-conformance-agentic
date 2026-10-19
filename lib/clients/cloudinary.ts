@@ -10,7 +10,7 @@ const CLOUDINARY_URL = process.env.CLOUDINARY_URL ?? "";
 const configured = /^cloudinary:\/\/[^<>\s:]+:[^<>\s@]+@[^<>\s]+$/.test(CLOUDINARY_URL);
 
 export async function uploadDoc(buffer: Buffer, filename: string, orgId: string): Promise<string | null> {
-  if (!configured) return null; // storage not configured — skip archival, run proceeds
+  if (!configured || orgId === "org_demo_local") return null; // storage not configured (or local demo org: nothing leaves the machine) — skip archival, run proceeds
   const { v2: cloudinary } = await import("cloudinary");
   cloudinary.config({ secure: true }); // reads CLOUDINARY_URL from env
   return new Promise((resolve, reject) => {

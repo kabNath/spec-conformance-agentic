@@ -12,40 +12,41 @@ datasource db {
 }
 
 model Organization {
-  id        String   @id            // Clerk organization id (org_...)
+  id        String           @id // Clerk organization id (org_...)
   name      String
-  plan      String   @default("free")
-  createdAt DateTime @default(now())
+  plan      String           @default("free")
+  createdAt DateTime         @default(now())
   assets    Asset[]
   runs      ConformanceRun[]
+  apiKeys   ApiKey[]
 }
 
 model Asset {
-  id            String   @id @default(uuid())
+  id            String       @id @default(uuid())
   orgId         String
   org           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  kind          String   // "standard" | "implementation"
+  kind          String // "standard" | "implementation"
   name          String
-  spec          String?  // "TS 38.331"
-  version       String?  // "18.3.0"
-  release       String?  // "Rel-18"
-  cloudinaryUrl String?  // raw upload (Cloudinary)
-  createdAt     DateTime @default(now())
+  spec          String? // "TS 38.331"
+  version       String? // "18.3.0"
+  release       String? // "Rel-18"
+  cloudinaryUrl String? // raw upload (Cloudinary)
+  createdAt     DateTime     @default(now())
 
   @@index([orgId])
 }
 
 model ConformanceRun {
-  id              String   @id @default(uuid())
+  id              String                 @id @default(uuid())
   orgId           String
-  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  org             Organization           @relation(fields: [orgId], references: [id], onDelete: Cascade)
   name            String
   targetRelease   String?
-  status          String   @default("queued") // queued|running|complete|failed
-  reviewThreshold Float    @default(0.75)
+  status          String                 @default("queued") // queued|running|complete|failed
+  reviewThreshold Float                  @default(0.75)
   summary         Json?
-  createdBy       String?  // Clerk user id
-  createdAt       DateTime @default(now())
+  createdBy       String? // Clerk user id
+  createdAt       DateTime               @default(now())
   completedAt     DateTime?
   requirements    EvaluatedRequirement[]
 
@@ -53,24 +54,80 @@ model ConformanceRun {
 }
 
 model EvaluatedRequirement {
-  id            String   @id @default(uuid())
+  id            String         @id @default(uuid())
   runId         String
   run           ConformanceRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   orgId         String
   requirement   String
   source        Json
-  citations     Json     // ClauseCitation[]
+  citations     Json // ClauseCitation[]
   verdict       String
-  normative     String   @default("none")
+  normative     String         @default("none")
   confidence    Float
   verifier      Json
   review        Json
   gapNote       String?
   retrievalPath Json?
   attestation   Json?
+  trace         Json? // audit trace (lib/trace.ts): raw verdict before the guards, guard reason, quote status/hash/length, verifier
   model         String?
-  evaluatedAt   DateTime @default(now())
+  evaluatedAt   DateTime       @default(now())
+  rejectedQuote RejectedQuote?
 
   @@index([runId])
   @@index([orgId])
+}
+
+/// LOCAL ONLY. Full text of an evaluator quote that a guard rejected (the trace keeps only its SHA-256 and length).
+/// Written by lib/graph/persist.ts and by nothing else: never in exports, API responses, public files or attestations.
+model RejectedQuote {
+  id            String               @id @default(uuid())
+  requirementId String               @unique
+  requirement   EvaluatedRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  orgId         String
+  text          String
+  sha256        String
+  length        Int
+  createdAt     DateTime             @default(now())
+
+  @@index([orgId])
+}
+
+/// API key of an organisation, for non-interactive clients (the MCP server). One ACTIVE key per organisation
+/// (partial unique index in the migration: Prisma cannot express it). Only the SHA-256 of the key is stored;
+/// the key itself is shown once by scripts/create-api-key.ts. `prefix` identifies the row, it is not secret.
+model ApiKey {
+  id         String       @id @default(uuid())
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name       String
+  prefix     String       @unique
+  keyHash    String       @unique
+  createdBy  String?
+  createdAt  DateTime     @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([orgId])
+}
+
+/// One row per MCP tool call: hashes of input and output (never the content), outcome, latency, and the
+/// Ed25519-signed record returned by the sidecar's /sign-call (null if the sidecar was unreachable).
+model McpToolCall {
+  id           String   @id @default(uuid())
+  orgId        String
+  apiKeyId     String?
+  tool         String
+  requestId    String
+  inputSha256  String
+  outputSha256 String?
+  outcome      String // ok | abstained | error
+  errorCode    String?
+  latencyMs    Int
+  verdictId    String?
+  signed       Json?
+  createdAt    DateTime @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([verdictId])
 }

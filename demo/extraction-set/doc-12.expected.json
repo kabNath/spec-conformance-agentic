@@ -1,0 +1,29 @@
+{
+  "id": "doc-12",
+  "document": "doc-12.txt",
+  "sentences": [
+    "The Golf terminal reports its session state on the front display.",
+    "The display shows the word ACTIVE during an active session and the word IDLE otherwise.",
+    "The display is large."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall report its session state on the front display."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "The display shall show the word ACTIVE during an active session."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 2,
+      "text": "The display shall show the word IDLE when no session is active."
+    }
+  ],
+  "non_requirement_sentences": [
+    3
+  ]
+}

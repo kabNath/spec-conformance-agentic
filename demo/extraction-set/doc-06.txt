@@ -1,0 +1,3 @@
+Echo terminal — waiting
+
+The Echo terminal sends a SessionRequest message carrying a random session value and waits for a SessionAccept message. While waiting, it does not send any other message on CCH1. Waiting lasts at most the duration of timer T901.

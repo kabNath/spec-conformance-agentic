@@ -16,7 +16,7 @@ const SECTIONS: { title: string; items: { href: string; label: string; ic: strin
   ]},
 ];
 
-export default function Sidebar({ userName, orgName }: { userName: string; orgName: string }) {
+export default function Sidebar({ userName, orgName, demo = false }: { userName: string; orgName: string; demo?: boolean }) {
   const pathname = usePathname();
   return (
     <aside className="w-[260px] shrink-0 bg-panel border-r border-white/10 flex flex-col h-screen relative text-[#c2c8ce]">
@@ -26,9 +26,9 @@ export default function Sidebar({ userName, orgName }: { userName: string; orgNa
         <span className="absolute left-5 right-5 bottom-0 h-px bg-gradient-to-r from-accent to-transparent" />
       </div>
 
-      <div className="px-3 pt-3">
+      {!demo && <div className="px-3 pt-3">
         <OrganizationSwitcher hidePersonal appearance={{ elements: { rootBox: "w-full", organizationSwitcherTrigger: "w-full justify-between text-[#c2c8ce]" } }} />
-      </div>
+      </div>}
 
       <nav className="flex-1 overflow-y-auto py-2 mt-1">
         {SECTIONS.map((sec) => (
@@ -50,7 +50,7 @@ export default function Sidebar({ userName, orgName }: { userName: string; orgNa
       </nav>
 
       <div className="border-t border-white/10 p-3 flex items-center gap-2.5">
-        <UserButton afterSignOutUrl="/" />
+        {demo ? <span className="w-7 h-7 rounded-full bg-amber-400/80 grid place-items-center text-[11px] text-black">D</span> : <UserButton afterSignOutUrl="/" />}
         <div className="flex-1 min-w-0">
           <div className="font-serif text-[12px] text-[#f4f3f0] truncate">{userName}</div>
           <div className="font-mono text-[9px] tracking-wider2 uppercase text-[#6b7480]">{orgName}</div>

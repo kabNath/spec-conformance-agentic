@@ -1,0 +1,8 @@
+Behaviour checklist
+
+1) The terminal starts timer T901 when a SessionRequest message is sent.
+2) The terminal stops timer T901 when a SessionAccept message is received, and stores the received parameters.
+3) The terminal applies SessionUpdate parameters in the order received.
+4) The terminal answers each SessionUpdate message with a SessionUpdateComplete message.
+5) The terminal must not release the session before it has answered.
+6) The list above is not exhaustive.

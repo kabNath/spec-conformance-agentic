@@ -1,0 +1,41 @@
+{
+  "id": "doc-07",
+  "document": "doc-07.txt",
+  "sentences": [
+    "The terminal releases the session when the user presses the stop button.",
+    "Before releasing, it answers any pending SessionUpdate message with a SessionUpdateComplete message.",
+    "After releasing, it deletes the stored parameters and turns off CCH1.",
+    "The stop button is red.",
+    "Releasing takes less than two seconds."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "The terminal shall release the session when the user presses the stop button."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 2,
+      "text": "Before releasing the session, the terminal shall answer any pending SessionUpdate message with a SessionUpdateComplete message."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 3,
+      "text": "After releasing the session, the terminal shall delete the stored parameters."
+    },
+    {
+      "id": "r4",
+      "source_sentence": 3,
+      "text": "After releasing the session, the terminal shall turn off CCH1."
+    },
+    {
+      "id": "r5",
+      "source_sentence": 5,
+      "text": "Releasing the session shall take less than two seconds."
+    }
+  ],
+  "non_requirement_sentences": [
+    4
+  ]
+}

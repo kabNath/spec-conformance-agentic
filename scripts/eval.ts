@@ -21,9 +21,8 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { retrieveNode } from "../lib/graph/nodes/retrieve";
-import { assess } from "../lib/graph/nodes/assess";
-import { verify } from "../lib/graph/nodes/verify";
-import { llmStats } from "../lib/clients/openrouter";
+import { judge } from "../lib/graph/judge";
+import { llmStats, callLog } from "../lib/clients/openrouter";
 import type { ConformanceStateT } from "../lib/graph/state";
 import type { Verdict, ReviewReason } from "../lib/conformance-contract";
 
@@ -66,11 +65,20 @@ interface ItemResult {
   gold_verdict: GoldVerdict;
   gold_clause: string | null;
   pred_verdict: GoldVerdict;
+  raw_verdict?: GoldVerdict; // assessor's verdict before the citation guards (v2)
   pred_clause: string | null;
   verdict_correct: boolean;
   clause_outcome: "exact" | "family" | "wrong_clause" | "no_citation" | "correct_abstain" | "spurious_citation";
   review_required: boolean;
   review_reason?: ReviewReason;
+  /** What the review state would have been with the assessor and the deterministic guards alone (no verifier). */
+  review_without_verifier?: ReviewReason | null;
+  /** How the verifier changed the outcome: nothing, forced a review, or blocked a gap commit. */
+  verifier_effect?: "none" | "forced_review" | "gap_blocked_verifier_disagreement" | "gap_blocked_same_family";
+  call_ids?: { id?: string; model: string; role: string }[];
+  /** The assessor's exact quote, and for GAP_GUARD=verifier what the verifier was shown and answered (raw JSON). */
+  assessor_quote?: string;
+  gap_check?: unknown;
   assessor_confidence: number;
   verifier_agrees: boolean;
   verifier_confidence: number;
@@ -93,6 +101,7 @@ function clauseOutcome(gold: string | null, pred: string | null): ItemResult["cl
 
 async function evalOne(item: GoldItem): Promise<ItemResult> {
   const before = llmStats.calls;
+  const callsBefore = callLog.length;
 
   // Minimal state: retrieveNode reads requirements[cursor], standardId,
   // standardMeta, orgId. No DB, no extract, no persistence.
@@ -107,15 +116,27 @@ async function evalOne(item: GoldItem): Promise<ItemResult> {
   } as unknown as ConformanceStateT;
 
   const { citations = [], path = [] } = await retrieveNode(state);
-  const a = await assess(item.requirement, citations);
-  const v = await verify(item.requirement, a.verdict, citations);
+  // Same judge (assess → citation guards → verify) as compileNode in lib/graph/pipeline.ts.
+  const { a, v, blockedReason, rawVerdict, quote, gapCheck } = await judge(item.requirement, STANDARD_ID, citations);
 
-  // Review flag — same logic as compileNode in lib/graph/pipeline.ts.
+  // Review flag — same logic as compileNode.
   let review: { required: boolean; reason?: ReviewReason };
   if (citations.length === 0) review = { required: true, reason: "no_clause_found" };
+  else if (blockedReason) review = { required: true, reason: blockedReason };
   else if (!v.agrees) review = { required: true, reason: "verifier_disagreement" };
   else if (a.confidence < REVIEW_THRESHOLD) review = { required: true, reason: "low_confidence" };
   else review = { required: false };
+
+  // Counterfactual: same item, verifier ignored (guards and confidence gate still apply).
+  let without: ReviewReason | null = null;
+  if (citations.length === 0) without = "no_clause_found";
+  else if (blockedReason && blockedReason !== "verifier_same_family") without = blockedReason;
+  else if (a.confidence < REVIEW_THRESHOLD) without = "low_confidence";
+  let effect: ItemResult["verifier_effect"] = "none";
+  if (review.required && without === null) {
+    effect = blockedReason === "verifier_same_family" ? "gap_blocked_same_family"
+      : a.verdict === "gap" ? "gap_blocked_verifier_disagreement" : "forced_review";
+  }
 
   const predVerdict = normalizeVerdict(a.verdict);
   const goldVerdict = item.human_verdict as GoldVerdict;
@@ -128,11 +149,17 @@ async function evalOne(item: GoldItem): Promise<ItemResult> {
     gold_verdict: goldVerdict,
     gold_clause: item.governing_clause,
     pred_verdict: predVerdict,
+    raw_verdict: normalizeVerdict(rawVerdict),
     pred_clause: predClause,
     verdict_correct: predVerdict === goldVerdict,
     clause_outcome: clauseOutcome(item.governing_clause, predClause),
     review_required: review.required,
     review_reason: review.reason,
+    review_without_verifier: without,
+    verifier_effect: effect,
+    call_ids: callLog.slice(callsBefore),
+    assessor_quote: quote,
+    gap_check: gapCheck,
     assessor_confidence: a.confidence,
     verifier_agrees: v.agrees,
     verifier_confidence: v.confidence,
@@ -323,6 +350,30 @@ function costReport(label: string) {
   return { calls: llmStats.calls, inputTokens: llmStats.inputTokens, outputTokens: llmStats.outputTokens, costUsd: round3(total) };
 }
 
+// Real provider + cost of every call, from OpenRouter's /generation endpoint (needs OPENROUTER_API_KEY in
+// the environment; the key is only sent as a header and never printed).
+interface GenInfo { item: string; role: string; model: string; id: string; provider?: string; cost?: number; tokensIn?: number; tokensOut?: number; error?: string }
+async function fetchGenerations(items: ItemResult[]): Promise<GenInfo[]> {
+  const out: GenInfo[] = [];
+  for (const it of items) for (const c of it.call_ids ?? []) {
+    const g: GenInfo = { item: it.id, role: c.role, model: c.model, id: c.id ?? "" };
+    if (!c.id) { g.error = "no generation id"; out.push(g); continue; }
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const r = await fetch(`https://openrouter.ai/api/v1/generation?id=${encodeURIComponent(c.id)}`, {
+        headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` } });
+      if (r.ok) {
+        const d = (await r.json()).data ?? {};
+        g.provider = d.provider_name; g.cost = d.total_cost; g.tokensIn = d.tokens_prompt ?? d.native_tokens_prompt;
+        g.tokensOut = d.tokens_completion ?? d.native_tokens_completion; g.model = d.model ?? g.model; delete g.error; break;
+      }
+      g.error = `HTTP ${r.status}`;
+      await new Promise((res) => setTimeout(res, 1500)); // the record appears with a short delay
+    }
+    out.push(g);
+  }
+  return out;
+}
+
 // ── Main ────────────────────────────────────────────────────────────────
 const gold: GoldSet = JSON.parse(readFileSync(new URL("../eval/gold-set.json", import.meta.url), "utf8"));
 
@@ -356,13 +407,22 @@ async function main() {
     return;
   }
 
-  const items = gold.requirements.slice(0, limit === Infinity ? undefined : limit);
+  // --ids-file <json with {ids:[…]}>: run only a frozen subset (see eval/frozen-subset.json).
+  const idsArg = argv.indexOf("--ids-file");
+  const only: string[] | null = idsArg !== -1 ? JSON.parse(readFileSync(argv[idsArg + 1], "utf8")).ids : null;
+  const pool = only ? gold.requirements.filter((r) => only.includes(r.id)) : gold.requirements;
+  const items = pool.slice(0, limit === Infinity ? undefined : limit);
   console.log(`Running ${items.length} requirement(s) through retrieve → assess → verify …`);
   llmStats.reset();
   const t0 = Date.now();
 
   const all: ItemResult[] = [];
+  const budgetArg = argv.indexOf("--budget-usd");
+  const budget = budgetArg !== -1 ? Number(argv[budgetArg + 1]) : Infinity;
   for (const item of items) {
+    // Conservative guard: price ALL tokens at the (dearest) assessor rate; abort rather than overspend.
+    const est = (llmStats.inputTokens / 1e6) * PRICE_IN_PER_M + (llmStats.outputTokens / 1e6) * PRICE_OUT_PER_M;
+    if (est > budget) { console.error(`\n⛔ estimated spend $${est.toFixed(3)} exceeds --budget-usd ${budget}: stopping before ${item.id}`); break; }
     const r = await runItem(item);
     all.push(r);
     const mark = r.error ? "‼" : r.verdict_correct ? "✓" : "✗";
@@ -371,6 +431,7 @@ async function main() {
   }
 
   const elapsedMs = Date.now() - t0;
+  const generations = argv.includes("--generations") ? await fetchGenerations(all) : undefined;
   const errored = all.filter((r) => r.error);
   const results = all.filter((r) => !r.error); // scored set excludes harness failures
   if (errored.length) {
@@ -393,17 +454,25 @@ async function main() {
     config: {
       spec: gold.meta.spec, version: gold.meta.version, release: gold.meta.release,
       model: process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4.6",
+      verifierModel: process.env.OPENROUTER_VERIFIER_MODEL ?? null, // null ⇒ same model as the assessor
+      gapGuard: process.env.GAP_GUARD ?? "verifier",
+      verifierProvider: process.env.OPENROUTER_VERIFIER_PROVIDER ?? null,
+      citationWindowChars: Number(process.env.CITATION_WINDOW_CHARS) || 4000,
+      citationGuards: true, // verbatim excerpt + grounded-gap + other-family verifier (lib/graph/judge.ts)
+      subset: only ? only.length : null,
       embeddingsModel: process.env.EMBEDDINGS_MODEL ?? "openai/text-embedding-3-small",
       reviewThreshold: REVIEW_THRESHOLD, orgId: ORG_ID, standardId: STANDARD_ID,
       corpusClauses: 266, goldSetSize: gold.requirements.length,
     },
     summary: { ...summary, scored: results.length, errored: errored.length, elapsedMs },
     cost,
+    generations,
     items: all,
   };
-  const outPath = new URL("../eval/results.json", import.meta.url);
+  const outArg = argv.indexOf("--out");
+  const outPath = outArg !== -1 ? argv[outArg + 1] : new URL("../eval/results.json", import.meta.url);
   writeFileSync(outPath, JSON.stringify(out, null, 2));
-  console.log(`\nResults written to eval/results.json`);
+  console.log(`\nResults written to ${outArg !== -1 ? outPath : "eval/results.json"}`);
 }
 
 main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });

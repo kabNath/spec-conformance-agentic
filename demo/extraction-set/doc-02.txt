@@ -1,0 +1,3 @@
+Parameter storage
+
+After a SessionAccept message the terminal stores the received parameters and enters the active state. The stored parameters are kept until the session is closed. Customers appreciate the fast start-up.

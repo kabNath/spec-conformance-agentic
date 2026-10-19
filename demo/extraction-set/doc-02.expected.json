@@ -1,0 +1,29 @@
+{
+  "id": "doc-02",
+  "document": "doc-02.txt",
+  "sentences": [
+    "After a SessionAccept message the terminal stores the received parameters and enters the active state.",
+    "The stored parameters are kept until the session is closed.",
+    "Customers appreciate the fast start-up."
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "source_sentence": 1,
+      "text": "After a SessionAccept message, the terminal shall store the received parameters."
+    },
+    {
+      "id": "r2",
+      "source_sentence": 1,
+      "text": "After a SessionAccept message, the terminal shall enter the active state."
+    },
+    {
+      "id": "r3",
+      "source_sentence": 2,
+      "text": "The terminal shall keep the stored parameters until the session is closed."
+    }
+  ],
+  "non_requirement_sentences": [
+    3
+  ]
+}

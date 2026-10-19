@@ -1,0 +1,3 @@
+Foxtrot terminal — one session
+
+The Foxtrot terminal supports one session at a time. A second SessionRequest message received while a session is active is ignored. The terminal tells the user when a request is ignored by blinking an amber light. Foxtrot is the sixth model of the family.

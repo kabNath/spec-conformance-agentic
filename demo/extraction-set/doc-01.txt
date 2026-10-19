@@ -1,0 +1,3 @@
+Borealis terminal — session opening
+
+The Borealis terminal opens a session by sending a SessionRequest message and starting timer T901. It stops timer T901 as soon as a SessionAccept message arrives. The terminal was designed for low power consumption. If no SessionAccept message arrives before timer T901 expires, the terminal repeats the SessionRequest message.

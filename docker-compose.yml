@@ -21,12 +21,22 @@ services:
     volumes: ["neo4jdata:/data"]
 
   vidimus:
-    build: ./vidimus-svc
+    build:
+      context: .
+      dockerfile: vidimus-svc/Dockerfile
     ports: ["4319:4319"]
-    volumes: ["vidimusdata:/data"]
+    environment:
+      VIDIMUS_KEYS_DIR: /data/vidimus-keys
+      # LOCAL DEV ONLY: lets the service create its key on first start (stored in the named volume below,
+      # so it then persists). Production must NOT set this: the key comes from a volume or a secret.
+      VIDIMUS_ALLOW_EPHEMERAL: "1"
+    volumes:
+      - vidimusdata:/data
+      - vidimuskeys:/data/vidimus-keys   # signing key: survives restarts and image rebuilds
 
 volumes:
   pgdata:
   qdrantdata:
   neo4jdata:
   vidimusdata:
+  vidimuskeys:

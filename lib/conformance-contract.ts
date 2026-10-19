@@ -26,7 +26,14 @@ export type ReviewReason =
   | "low_confidence"
   | "verifier_disagreement"
   | "no_clause_found"
-  | "conflicting_clauses";
+  | "conflicting_clauses"
+  | "citation_not_verbatim"   // the cited excerpt is missing or not verbatim in the ingested clause → verdict forced to insufficient_evidence
+  | "citation_too_short"      // the cited excerpt IS exact but under the minimum length (4 words) → verdict forced to insufficient_evidence
+  | "gap_not_grounded"        // a gap needs a shall/must sentence about the requirement's subject → forced to insufficient_evidence
+  | "verifier_same_family"
+  | "gap_off_subject"          // GAP_GUARD=verifier: the cited passage is not about the requirement's subject
+  | "gap_no_contradiction"     // …or it does not contradict the requirement (silence / permitted / excepted by a NOTE)
+  | "gap_verifier_unusable";   // …or the verifier's answer was malformed or cited words that are not in the texts   // a gap may only commit after an independent model family agrees
 
 export type RunStatus = "queued" | "running" | "complete" | "failed";
 
@@ -39,6 +46,8 @@ export interface ClauseCitation {
   clause: string;            // clause path, e.g. "5.5.3"
   clauseTitle?: string;      // e.g. "Ephemeris and timing validity"
   text: string;              // EXACT span that grounds the claim, verbatim
+  /** The assessor's supporting quote; set only once verified verbatim against the full clause text. */
+  excerpt?: string;
   normative: NormativeKeyword;
   page?: number;
   charStart?: number;
@@ -57,9 +66,17 @@ export interface VerifierResult {
 
 /* ── Vidimus attestation — calibrated confidence + tamper-evident signature ── */
 export interface Attestation {
-  calibratedConfidence: number; // bootstrap-CI mean over judge signals
-  ciLow: number;
-  ciHigh: number;
+  /** Empirical accuracy of the raw-confidence tranche (eval/calibration.json). */
+  calibrated: boolean;          // false => tranche has < 10 reference items: no calibrated value, no interval
+  calibratedConfidence: number | null;
+  ciLow: number | null;         // Wilson 95% interval of the tranche
+  ciHigh: number | null;
+  rawConfidence: number;        // uncalibrated LLM signal (mean of assessor + verifier)
+  calibrationVersion: string;   // "none" when no calibration file was loaded
+  nReference: number;           // reference predictions behind the calibration
+  trancheN: number;             // reference predictions in this tranche
+  keyId: string;                // fingerprint of the signing key (signed); check it against trusted-keys.json
+  issuedAt: string;             // UTC time asserted by the signer (signed)
   contentHash: string;          // SHA-256 of canonical payload
   signature: string;            // Ed25519 signature of the content hash
   publicKey: string;            // verifier's public key (hex)
@@ -96,7 +113,7 @@ export interface EvaluatedRequirement {
 
   citations: ClauseCitation[]; // empty ⇒ verdict must be insufficient_evidence
   verdict: Verdict;
-  normative: NormativeKeyword; // strongest force across cited clauses
+  normative: NormativeKeyword; // force of the cited sentence that governs THIS requirement (lib/normative.ts); clause-level strongest keyword only when no sentence overlaps
   confidence: number;          // 0..1 (trust layer)
 
   verifier: VerifierResult;
@@ -105,6 +122,7 @@ export interface EvaluatedRequirement {
   gapNote?: string;
   retrievalPath?: string[];    // ToC → section → clause trail (audit trail)
   attestation?: Attestation;   // vidimus: calibrated confidence + signed proof
+  trace?: import("./trace").RequirementTrace; // audit trace: raw verdict before the guards, guard reason, quote status (lib/trace.ts)
 
   model: string;
   evaluatedAt: string;

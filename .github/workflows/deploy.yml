@@ -34,7 +34,7 @@ jobs:
       - name: Build & push vidimus image
         run: |
           IMG=${{ steps.ecr.outputs.registry }}/spec-conformance-vidimus:latest
-          docker build -t "$IMG" ./vidimus-svc
+          docker build -f vidimus-svc/Dockerfile -t "$IMG" .
           docker push "$IMG"
 
       # App Runner auto_deployments_enabled=true redeploys on ECR push, but we

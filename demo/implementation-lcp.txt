@@ -1,0 +1,12 @@
+Implementation notes: Acme terminal, Link Control Protocol (LCP) support
+========================================================================
+
+This fictional document describes how the Acme terminal behaves. It is invented for demonstration purposes.
+
+Session behaviour
+
+1. When a session is opened, the terminal applies the default channel parameters, starts timer T901 and sends a SessionRequest message that carries a random session value.
+2. When the network answers with a SessionAccept message, the terminal stops timer T901, stores the received parameters and enters the active state.
+3. The terminal applies the parameters of a SessionUpdate message in an arbitrary order and sends a SessionUpdateComplete message only if at least one parameter was applied successfully.
+4. The terminal releases the session immediately after receiving a SessionUpdate message, before it answers.
+5. The terminal lights a green LED on the front panel for as long as a session is active.

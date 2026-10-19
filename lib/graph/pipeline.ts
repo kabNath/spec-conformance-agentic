@@ -7,39 +7,19 @@ import { StateGraph, END, START } from "@langchain/langgraph";
 import { ConformanceState, type ConformanceStateT } from "./state";
 import { extractNode } from "./nodes/extract";
 import { retrieveNode } from "./nodes/retrieve";
-import { assess } from "./nodes/assess";
-import { verify } from "./nodes/verify";
+import { evaluateRequirement } from "../evaluate-requirement";
+import { persistRows } from "./persist";
 import { prisma } from "../clients/prisma";
-import type { EvaluatedRequirement, RunSummary, ReviewReason } from "../conformance-contract";
-import { attest } from "../clients/vidimus";
+import type { RunSummary } from "../conformance-contract";
 
-// compile = assess + verify + build one matrix row + advance the cursor.
+// compile = assess + verify + build one matrix row + advance the cursor
+// (the per-requirement logic lives in lib/evaluate-requirement.ts, shared with the MCP server).
 async function compileNode(s: ConformanceStateT): Promise<Partial<ConformanceStateT>> {
   const req = s.requirements[s.cursor];
-  const a = await assess(req.requirement, s.citations);
-  const v = await verify(req.requirement, a.verdict, s.citations);
-
-  // Vidimus: calibrated confidence (bootstrap-CI over both judges) + signed attestation.
-  const att = await attest({
-    requirement: req.requirement, verdict: a.verdict,
-    assessorConfidence: a.confidence, verifierConfidence: v.confidence,
-    verifierAgrees: v.agrees, citations: s.citations,
+  const row = await evaluateRequirement({
+    runId: s.runId, requirement: req.requirement, section: req.section, standardId: s.standardId,
+    implDocName: s.implDocName, citations: s.citations, path: s.path, reviewThreshold: s.reviewThreshold,
   });
-  const confidence = att.calibratedConfidence;
-
-  let review: { required: boolean; reason?: ReviewReason };
-  if (s.citations.length === 0) review = { required: true, reason: "no_clause_found" };
-  else if (!v.agrees) review = { required: true, reason: "verifier_disagreement" };
-  else if (confidence < s.reviewThreshold) review = { required: true, reason: "low_confidence" };
-  else review = { required: false };
-
-  const row: EvaluatedRequirement = {
-    id: crypto.randomUUID(), runId: s.runId, requirement: req.requirement,
-    source: { documentId: s.standardId, documentName: s.implDocName, section: req.section },
-    citations: s.citations, verdict: a.verdict, normative: a.normative, confidence,
-    verifier: v, review, gapNote: a.gapNote, retrievalPath: s.path, attestation: att,
-    model: process.env.OPENROUTER_MODEL ?? "", evaluatedAt: new Date().toISOString(),
-  };
   return { rows: [row], cursor: s.cursor + 1, citations: [], path: [] };
 }
 
@@ -76,17 +56,7 @@ export async function runConformance(input: RunInput): Promise<RunSummary> {
   })) as ConformanceStateT;
 
   const rows = final.rows;
-  if (rows.length) {
-    await prisma.evaluatedRequirement.createMany({
-      data: rows.map((r) => ({
-        id: r.id, runId: r.runId, orgId: input.orgId, requirement: r.requirement,
-        source: r.source as object, citations: r.citations as object, verdict: r.verdict,
-        normative: r.normative, confidence: r.confidence, verifier: r.verifier as object,
-        review: r.review as object, gapNote: r.gapNote, retrievalPath: r.retrievalPath as object, attestation: r.attestation as object,
-        model: r.model, evaluatedAt: new Date(r.evaluatedAt),
-      })),
-    });
-  }
+  await persistRows(prisma, input.orgId, rows);
 
   const summary: RunSummary = {
     total: rows.length,

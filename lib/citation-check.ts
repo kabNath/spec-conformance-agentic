@@ -1,0 +1,159 @@
+// Deterministic citation guards — pure functions, no network, no LLM.
+//
+// 1. Every committed verdict must rest on an excerpt that appears VERBATIM
+//    (modulo whitespace) in the ingested clause text. A quote the model
+//    paraphrased or invented cannot ground a verdict.
+// 2. A `gap` may only be committed if the excerpt contains a normative
+//    sentence (shall / shall not / must) that is about the requirement's
+//    subject: enough of the requirement's salient terms occur in that sentence.
+//    "Shall" somewhere in an on-topic-looking clause is not enough (R10).
+//
+// These run BEFORE the LLM verifier; the LLM verifier is then a second,
+// independent check (different model family), not the only line of defence.
+import type { Verdict } from "./conformance-contract";
+
+export type GuardReason = "citation_not_verbatim" | "citation_too_short" | "gap_not_grounded";
+
+/** Minimum words in a quote: shorter strings are trivially "verbatim". */
+export const MIN_QUOTE_WORDS = 4;
+/** A gap's normative sentence must cover at least this share of the requirement's salient terms… */
+export const MIN_SUBJECT_COVERAGE = 0.4;
+/** …and at least this many of them in absolute terms. */
+export const MIN_SHARED_TERMS = 2;
+
+export function normalizeWs(s: string): string {
+  return s.replace(/\s+/g, " ").trim();
+}
+
+export type QuoteCheck = "ok" | "too_short" | "not_verbatim";
+
+/**
+ * "ok": the quote occurs verbatim (whitespace-normalised) in the clause and has at least MIN_QUOTE_WORDS words.
+ * "too_short": it occurs verbatim but is under the minimum (the quote is exact, only too short to count as grounding).
+ * "not_verbatim": it is missing/empty or does not occur in the clause.
+ */
+export function checkQuote(quote: string | undefined | null, clauseText: string): QuoteCheck {
+  const q = canonicalizeQuote(quote ?? "", clauseText);
+  const n = normalizeWs(q);
+  if (!n || !normalizeWs(clauseText).includes(n)) return "not_verbatim";
+  return n.split(" ").length < MIN_QUOTE_WORDS ? "too_short" : "ok";
+}
+
+const flipFirst = (s: string) => {
+  const c = s[0];
+  return c.toLowerCase() === c.toUpperCase() ? s : (c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()) + s.slice(1);
+};
+
+/**
+ * The one case difference that is tolerated: the FIRST letter of the quote. A quote that starts at the beginning of a sentence is often
+ * written with a lower-case initial ("the terminal…" for "The terminal…"), or the reverse. Any other case difference (e.g. "cch1" for
+ * "CCH1") is still refused. Returns the clause's own spelling when the quote is exact up to its first letter, else the quote unchanged
+ * (whitespace-normalised, so that downstream code can rely on it being an exact slice whenever the check passes).
+ */
+export function canonicalizeQuote(quote: string, clauseText: string): string {
+  const q = normalizeWs(quote);
+  if (!q) return q;
+  const clause = normalizeWs(clauseText);
+  if (clause.includes(q)) return q;
+  const v = flipFirst(q);
+  return v !== q && clause.includes(v) ? v : q;
+}
+
+/** True iff the quote is NOT an exact slice of the clause but becomes one when its first letter's case is flipped. */
+export function firstLetterCaseOnly(quote: string, clauseText: string): boolean {
+  const q = normalizeWs(quote);
+  return !!q && !normalizeWs(clauseText).includes(q) && canonicalizeQuote(q, clauseText) !== q;
+}
+
+/** True iff `quote` (non-trivial) occurs verbatim in `clauseText`, whitespace-normalised. */
+export function isVerbatim(quote: string | undefined | null, clauseText: string): boolean {
+  return checkQuote(quote, clauseText) === "ok";
+}
+
+const NORMATIVE_RE = /\b(shall(?:\s+not)?|must(?:\s+not)?)\b/i;
+
+const STOP = new Set((
+  "that this with from have been being were will would could should shall must upon when then than " +
+  "their there they them into onto each every only also such does done more most over under both " +
+  "which while where whose what whom ensure ensures performs perform performed following " +
+  "network message procedure clause specified indicated include included includes"
+).split(" "));
+
+/** Salient terms: lower-cased words of length >= 4, minus stop-words; plural/-ed/-ing folded. */
+export function salientTerms(text: string): Set<string> {
+  const out = new Set<string>();
+  for (const w of text.toLowerCase().match(/[a-z0-9]+/g) ?? []) {
+    if (w.length < 4 || STOP.has(w)) continue;
+    out.add(w.replace(/(ing|ed|es|s)$/, "") || w);
+  }
+  return out;
+}
+
+export interface GroundingResult { ok: boolean; coverage: number; shared: string[]; sentence?: string }
+
+/** Is there a normative sentence in `quote` that is about the requirement's subject? */
+export function gapGrounding(quote: string, requirement: string): GroundingResult {
+  const req = salientTerms(requirement);
+  let best: GroundingResult = { ok: false, coverage: 0, shared: [] };
+  for (const sentence of quote.split(/(?<=[.;:])\s+|\n+/)) {
+    if (!NORMATIVE_RE.test(sentence)) continue;
+    const words = salientTerms(sentence);
+    const shared = [...req].filter((t) => words.has(t));
+    const coverage = req.size ? shared.length / req.size : 0;
+    if (shared.length > best.shared.length) best = { ok: false, coverage, shared, sentence };
+  }
+  best.ok = best.coverage >= MIN_SUBJECT_COVERAGE && best.shared.length >= MIN_SHARED_TERMS;
+  return best;
+}
+
+export interface GuardOutcome { verdict: Verdict; reason?: GuardReason; detail?: string }
+
+/**
+ * Apply the deterministic guards to an assessor verdict.
+ * `insufficient_evidence` is always allowed (it asserts nothing). Anything
+ * else needs a verbatim quote; a `gap` additionally needs grounding.
+ * On failure the verdict is forced to `insufficient_evidence`.
+ */
+export function guardVerdict(i: {
+  verdict: Verdict; quote?: string; requirement: string; clauseText: string;
+  /** GAP_GUARD=lexical applies the shall/must + term-coverage rule; GAP_GUARD=verifier replaces it (lib/gap-check.ts). */
+  lexicalGap?: boolean;
+}): GuardOutcome {
+  if (i.verdict === "insufficient_evidence") return { verdict: i.verdict };
+  const q = checkQuote(i.quote, i.clauseText);
+  if (q === "too_short") {
+    return { verdict: "insufficient_evidence", reason: "citation_too_short",
+      detail: `the cited excerpt is exact but has fewer than ${MIN_QUOTE_WORDS} words, too short to ground a verdict` };
+  }
+  if (q === "not_verbatim") {
+    return { verdict: "insufficient_evidence", reason: "citation_not_verbatim",
+      detail: "the cited excerpt is missing or not found verbatim in the clause text" };
+  }
+  if (i.verdict === "gap" && i.lexicalGap !== false) {
+    const g = gapGrounding(i.quote!, i.requirement);
+    if (!g.ok) {
+      return { verdict: "insufficient_evidence", reason: "gap_not_grounded",
+        detail: `no shall/must sentence in the excerpt covers the requirement's subject ` +
+          `(best coverage ${g.coverage.toFixed(2)}, shared: ${g.shared.join(", ") || "none"})` };
+    }
+  }
+  return { verdict: i.verdict };
+}
+
+/** Provider prefix of an OpenRouter model id: "anthropic/claude-sonnet-4.6" → "anthropic". */
+export function modelFamily(model: string): string {
+  return model.split("/")[0].toLowerCase();
+}
+
+/**
+ * May a `gap` be committed given the verifier? Only if an independent LLM family
+ * checked it and agreed. Unset or same-family verifier ⇒ no.
+ */
+export function gapVerifierDecision(i: {
+  assessorModel: string; verifierModel?: string; verifierAgrees: boolean;
+}): { ok: boolean; reason?: "verifier_same_family" | "verifier_disagreement" } {
+  if (!i.verifierModel || modelFamily(i.verifierModel) === modelFamily(i.assessorModel)) {
+    return { ok: false, reason: "verifier_same_family" };
+  }
+  return i.verifierAgrees ? { ok: true } : { ok: false, reason: "verifier_disagreement" };
+}
