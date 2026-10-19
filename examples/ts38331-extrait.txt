@@ -1,0 +1,11 @@
+5  Procedures
+This clause describes the procedures of the invented Link Control Protocol (LCP) used for illustration in this repository, covering session control, parameter updates and teardown handling for a fictional radio link.
+
+5.3  Session control
+Session control procedures govern how a fictional link session is opened, changed, paused and closed. The terminal shall follow the ordering of steps given in the subclauses below.
+
+5.3.3  Session set-up
+The purpose of this procedure is to open a link session and the control channel CCH1 between the terminal and the network. On initiation, the terminal shall apply the default channel parameters, start timer T901 and send a SessionRequest message carrying a random session value. When the network answers with a SessionAccept message, the terminal shall stop timer T901, store the received parameters and enter the active state. If the session is later changed, the terminal follows the update steps in clause 5.3.5.
+
+5.3.5  Session update
+The purpose of this procedure is to change an open session, for example to add, modify or remove a traffic channel. The terminal shall apply the parameters carried by the SessionUpdate message in the order received and shall not release the session before it has answered with a SessionUpdateComplete message. If a parameter cannot be applied, the terminal starts the recovery steps described in clause 5.3.3.
