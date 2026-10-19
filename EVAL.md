@@ -765,19 +765,41 @@ Nothing was tuned on the TEST group: prompts, caps and criteria were committed b
 
 ## History rewrite
 
-The git history of this repository is rewritten to remove third-party specification text (© 3GPP/ETSI) that earlier commits contained (`eval/results-run1.json`, `eval/results-run2.json`, `examples/ts38331-extrait.txt`, and the spec-text versions of `eval/gold-set.json`; details in `docs/spec-text-cleanup-plan.md`). Every commit after the first modified one gets a new SHA, including the pre-registration commit.
+The git history of this repository was rewritten to remove third-party specification text (© 3GPP/ETSI) that earlier commits contained: `eval/results-run1.json`, `eval/results-run2.json`, `examples/ts38331-extrait.txt` (and its former root path), the spec-text versions of `eval/gold-set.json`, and spec sentences inside the test fixtures `scripts/test-citation-check.ts` and `scripts/test-gap-check.ts` (replaced by invented text, line by line, with the wording of the current versions). Details: `docs/spec-text-cleanup-plan.md`. Every commit after the first modified one got a new SHA, including the pre-registration commit.
 
 Proof of the original history (pre-rewrite):
 
 | | |
 |---|---|
-| original pre-registration commit | `ad3175f1ffef683855172fdde73093373483004e` (2026-10-06T19:37:18+08:00); it is intact inside the bundle below |
-| SHA-256 of `eval/PREREGISTRATION-gap-guard.md` at that commit | `77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014` (unchanged by the rewrite: the file is not touched) |
-| Ed25519 attestation of that hash | `docs/preregistration.md` (signature verified against the payload; development key, not in `vidimus-svc/trusted-keys.json`) |
+| original pre-registration commit | `ad3175f1ffef683855172fdde73093373483004e` (2026-10-06T19:37:18+08:00); intact inside the bundle below |
+| SHA-256 of `eval/PREREGISTRATION-gap-guard.md` | `77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014` (identical in the old and the new commit: the file is not touched) |
+| Ed25519 attestation of that hash | `docs/preregistration.md`. It is signed with the sidecar's **development key**, which is **not listed** in `vidimus-svc/trusted-keys.json` (the list is empty), so a verifier pinned to that file rejects it. No production key exists on the machine that produced this record, so no second attestation has been made. |
 | backup of the original history | `spec-conformance-agentic-before-rewrite-20261006.bundle`, `git bundle verify`: complete history, head `bd74c52` |
 | SHA-256 of the bundle | `2835e695090552b5ee099ea9e9a8d2d0398e17edbc0161b0fa7e2f0472a38db4` |
 
-The bundle contains the spec text and is **never published**; it is kept privately by the author. Old SHA → new SHA mapping and rewrite date: TBD, filled in after the rewrite.
+The bundle contains the spec text and is **never published**; the author keeps it privately.
+
+After the rewrite:
+
+| | |
+|---|---|
+| rewrite date (UTC) | 2026-10-19 |
+| tool | `git filter-repo`; commit messages, authors and dates preserved; only abbreviated hashes quoted in commit messages were remapped |
+| pre-registration commit, new SHA | `9571ff7e5366904799b935afd39819a45c1bf59e` |
+| signed tag | `prereg-v2` on that commit (SSH signature) |
+| full old → new commit mapping | `docs/history-rewrite-commit-map.txt` |
+| reason | third-party specification text (© 3GPP/ETSI) in earlier commits |
+
+Verify the tag (needs the `allowed_signers` file at the repository root):
+
+```bash
+git -c gpg.ssh.allowedSignersFile=allowed_signers tag -v prereg-v2
+git show prereg-v2:eval/PREREGISTRATION-gap-guard.md | shasum -a 256   # must print the SHA-256 above
+```
+
+`eval/gold-set.json`: requirement fields are paraphrases derived from the cited clauses; up to 12 consecutive words may coincide with spec wording; no clause text is reproduced.
+
+Text in this file and in other documents that cites `ad3175f1` refers to the original SHA, which exists only in the private bundle; the new SHA is above.
 
 ## Changelog
 
