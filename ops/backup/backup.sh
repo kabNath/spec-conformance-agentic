@@ -4,6 +4,8 @@
 #      BACKUP_PREFIX (default postgres/) · BACKUP_AGE_RECIPIENT (age public key; strongly recommended: dumps hold customer verdicts)
 #      BACKUP_RETENTION_DAYS (default 14). Exit code != 0 on ANY failure: a scheduler/monitor must treat that as "no backup today".
 set -euo pipefail
+# S3-compatible stores differ on the newer default integrity trailers of aws-cli v2; ask only when the API requires them (we verify with our own SHA-256).
+export AWS_REQUEST_CHECKSUM_CALCULATION="${AWS_REQUEST_CHECKSUM_CALCULATION:-when_required}" AWS_RESPONSE_CHECKSUM_VALIDATION="${AWS_RESPONSE_CHECKSUM_VALIDATION:-when_required}"
 : "${BACKUP_S3_BUCKET:?}" "${PGHOST:?}" "${PGUSER:?}" "${PGDATABASE:?}"
 PREFIX="${BACKUP_PREFIX:-postgres/}"; RETENTION="${BACKUP_RETENTION_DAYS:-14}"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"

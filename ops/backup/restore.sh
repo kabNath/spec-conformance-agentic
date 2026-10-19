@@ -3,6 +3,8 @@
 #   restore.sh [latest|<object name>]      env as backup.sh, plus RESTORE_DATABASE (default <PGDATABASE>_restored),
 #                                          BACKUP_AGE_IDENTITY (path to the age private key) if the dump is encrypted
 set -euo pipefail
+# S3-compatible stores differ on the newer default integrity trailers of aws-cli v2; ask only when the API requires them (we verify with our own SHA-256).
+export AWS_REQUEST_CHECKSUM_CALCULATION="${AWS_REQUEST_CHECKSUM_CALCULATION:-when_required}" AWS_RESPONSE_CHECKSUM_VALIDATION="${AWS_RESPONSE_CHECKSUM_VALIDATION:-when_required}"
 : "${BACKUP_S3_BUCKET:?}" "${PGHOST:?}" "${PGUSER:?}" "${PGDATABASE:?}"
 PREFIX="${BACKUP_PREFIX:-postgres/}"; TARGET="${RESTORE_DATABASE:-${PGDATABASE}_restored}"
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
