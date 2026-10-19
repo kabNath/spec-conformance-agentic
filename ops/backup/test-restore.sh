@@ -25,8 +25,8 @@ for i in $(seq 1 60); do docker exec "$ID-db" pg_isready -U postgres -d conforma
 docker exec "$ID-db" pg_isready -U postgres -d conformance >/dev/null || fail "source Postgres did not come up"
 
 echo "== schema = the real migrations, in order; data = representative rows"
-T mkdir -p /work/migrations
-docker cp ../../prisma/migrations "$ID-tools:/work/migrations"
+T mkdir -p /work
+docker cp ../../prisma/migrations "$ID-tools:/work/"
 docker cp test-seed.sql "$ID-tools:/work/seed.sql"
 docker cp test-compare.sql "$ID-tools:/work/compare.sql"
 T bash -c 'for f in $(ls /work/migrations/*/migration.sql | sort); do psql -v ON_ERROR_STOP=1 -q -f "$f" >/dev/null || exit 1; done'
