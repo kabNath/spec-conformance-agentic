@@ -29,6 +29,9 @@ infra/terraform/terraform.tfvars
 # OS / editor cruft
 .DS_Store
 
+# Local-only compose port remapping (avoids clashes with other stacks)
+docker-compose.override.yml
+
 # 3GPP spec source (© 3GPP/ETSI) — local input, not redistributed
 *.docx
 examples/ts38331-source.txt
