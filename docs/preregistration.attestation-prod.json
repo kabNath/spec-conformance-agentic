@@ -1,0 +1,15 @@
+{
+  "payload": {
+    "type": "vidimus.document-attestation.v1",
+    "document": "eval/PREREGISTRATION-gap-guard.md",
+    "sha256": "77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014",
+    "origin_commit": "9571ff7e5366904799b935afd39819a45c1bf59e",
+    "origin_commit_date": "2026-10-06T19:37:18+08:00",
+    "signed_at": "2026-10-19T04:45:46Z",
+    "statement": "The signer vouches that the document with this SHA-256 is the pre-registration committed at origin_commit."
+  },
+  "canonical_bytes": 429,
+  "key_id": "81360f61aefb0a9a681b43a53b8fe44a198e6571d06fd6d0419d83a4fe0e7472",
+  "public_key": "2459b8eaa8fc3a72d4dfd7bcd01fabe5abe124e971f36c5eb3e4de7628882596",
+  "signature": "b6dbc8bd134fdfd07ebee75f8985ce5cead06a82334289fe7483c66ac6ff277847f0d763068a39ea0b5a7b487a752993d0c9dbeb33fffa7ac7b954db035f6b0b"
+}

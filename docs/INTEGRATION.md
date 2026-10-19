@@ -40,7 +40,11 @@ Every response carries `call: {request_id, record_id, signed}`: the id of the to
 
 Failed calls return `isError: true` and `{"error": {"code", "message"}, "call": {...}}`. Codes: `unauthorized`, `invalid_input`, `spec_not_found`, `clause_not_found`, `verdict_not_found` (also for another organisation's id), `no_attestation`, `upstream_unavailable`, `audit_failed`, `internal`.
 
-## 3. Connect a client
+## 3. REST API
+
+The same operations over HTTP, with Server-Sent Events for `POST /api/v1/check` (`Accept: text/event-stream`): see [`docs/openapi.yaml`](openapi.yaml). `GET /api/healthz` is public and reports only ok / not ok for the database and the signing sidecar.
+
+## 4. Connect a client
 
 * Claude Desktop: [`examples/mcp/claude_desktop_config.json`](../examples/mcp/claude_desktop_config.json)
 * Cursor (HTTP): [`examples/mcp/cursor.json`](../examples/mcp/cursor.json)
@@ -53,9 +57,10 @@ curl -s -X POST https://YOUR-HOST/api/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-## 4. What is and is not covered
+## 5. What is and is not covered
 
 * Organisation isolation: every query is filtered by the organisation of the API key; another organisation's verdict is indistinguishable from an unknown id.
-* **Not yet:** rate limits and per-client usage reports (next phase), defences against prompt injection in uploaded documents and retrieved text, with a red-team set (later phase). The sidecar's `/attest`, `/verify` and `/sign-call` have **no caller authentication**: keep the sidecar on a private network.
+* Rate limit: `RATE_LIMIT_PER_MIN` requests per minute and API key (default 60; `429` with `Retry-After`). It is in memory, per process: with several instances the real limit is multiplied. `X-Request-Id` is echoed, stored with the call record and kept in the verdict's trace. `scripts/cost-report.ts` prints per-endpoint p50/p95 latency, mean tokens and, when `MODEL_PRICES_JSON` is set, mean cost.
+* **Not yet:** defences against prompt injection in uploaded documents and retrieved text, with a red-team set (later phase). The sidecar's `/attest`, `/verify` and `/sign-call` have **no caller authentication**: keep the sidecar on a private network.
 * Each `check_conformance` creates a run named "MCP check_conformance" in the organisation's run list.
 * CI tests cover schemas, errors and cross-organization isolation; they do not measure answer quality — see EVAL.md.

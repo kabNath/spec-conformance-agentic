@@ -1,5 +1,13 @@
 {
   "schema": "vidimus-svc.trusted-keys.v1",
   "_comment": "Public signing keys of the vidimus sidecar, past and current. Add the production key's entry here (key_id, public_key from GET /pubkey, valid_from). On rotation: set valid_until on the old entry and append the new one (valid_until null). Never delete a retired key: attestations it signed must stay verifiable. Validated by trust.load_trusted (at most one current key).",
-  "keys": []
+  "keys": [
+    {
+      "key_id": "81360f61aefb0a9a681b43a53b8fe44a198e6571d06fd6d0419d83a4fe0e7472",
+      "public_key": "2459b8eaa8fc3a72d4dfd7bcd01fabe5abe124e971f36c5eb3e4de7628882596",
+      "valid_from": "2026-10-19T04:45:25Z",
+      "valid_until": null,
+      "note": "production signing key; the private key lives only in the deployment's secret store"
+    }
+  ]
 }

@@ -17,7 +17,8 @@
     "test": "vitest run",
     "mcp": "tsx mcp/main.ts",
     "api-key:create": "tsx --env-file=.env.local scripts/create-api-key.ts",
-    "lint": "eslint mcp tests examples/mcp lib/evaluate-requirement.ts scripts/create-api-key.ts"
+    "lint": "eslint mcp api tests examples/mcp lib/evaluate-requirement.ts lib/usage.ts scripts/create-api-key.ts scripts/cost-report.ts",
+    "cost-report": "tsx --env-file=.env.local scripts/cost-report.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.0.0",
@@ -52,7 +53,8 @@
     "tsx": "^4.19.0",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.71.2",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "yaml": "^2.9.1"
   },
   "bin": {
     "conformance-mcp": "./bin/conformance-mcp.mjs"

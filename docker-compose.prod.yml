@@ -1,0 +1,14 @@
+# Production-like overlay: the sidecar signs with YOUR key, mounted as a secret, and may not generate one.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Needs ./secrets/vidimus-signing-key.pem (unencrypted Ed25519 PKCS#8 PEM; never commit it: *.pem is git-ignored) or
+# VIDIMUS_SIGNING_KEY_PATH pointing at it. For signer_trusted=true list its key in vidimus-svc/trusted-keys.json
+# (docs/SELF_HOSTING.md).
+services:
+  vidimus:
+    environment:
+      VIDIMUS_ALLOW_EPHEMERAL: "0"
+      VIDIMUS_SIGNING_KEY_FILE: /run/secrets/vidimus_signing_key
+    secrets: [vidimus_signing_key]
+secrets:
+  vidimus_signing_key:
+    file: ${VIDIMUS_SIGNING_KEY_PATH:-./secrets/vidimus-signing-key.pem}

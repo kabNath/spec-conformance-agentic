@@ -1,0 +1,31 @@
+name: release-images
+# On a version tag: build the two images and push them to GHCR. Deploying them is a separate, deliberate step
+# (the hosting decision is in docs/HOSTING_OPTIONS.md); nothing here touches a cloud account.
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+  packages: write
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+      - name: Build and push the app image
+        run: |
+          IMG=ghcr.io/${GITHUB_REPOSITORY,,}/app
+          docker build --target runner -t "$IMG:${GITHUB_REF_NAME}" -t "$IMG:latest" .
+          docker push "$IMG:${GITHUB_REF_NAME}" && docker push "$IMG:latest"
+      - name: Build and push the migration image
+        run: |
+          IMG=ghcr.io/${GITHUB_REPOSITORY,,}/migrate
+          docker build --target migrate -t "$IMG:${GITHUB_REF_NAME}" .
+          docker push "$IMG:${GITHUB_REF_NAME}"
+      - name: Build and push the sidecar image
+        run: |
+          IMG=ghcr.io/${GITHUB_REPOSITORY,,}/vidimus-svc
+          docker build -f vidimus-svc/Dockerfile -t "$IMG:${GITHUB_REF_NAME}" -t "$IMG:latest" .
+          docker push "$IMG:${GITHUB_REF_NAME}" && docker push "$IMG:latest"

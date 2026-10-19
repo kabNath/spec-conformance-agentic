@@ -85,7 +85,8 @@ export function createRealDeps(): McpDeps {
       async record(r) {
         const row = await prisma.mcpToolCall.create({ data: {
           orgId: r.orgId, apiKeyId: r.apiKeyId, tool: r.tool, requestId: r.request_id, inputSha256: r.input_sha256, outputSha256: r.output_sha256,
-          outcome: r.outcome, errorCode: r.error_code, latencyMs: r.latency_ms, verdictId: r.verdict_id, signed: (r.signed ?? undefined) as Prisma.InputJsonValue | undefined } });
+          outcome: r.outcome, errorCode: r.error_code, latencyMs: r.latency_ms, verdictId: r.verdict_id, signed: (r.signed ?? undefined) as Prisma.InputJsonValue | undefined,
+          channel: r.channel, llmCalls: r.llmCalls, inputTokens: r.inputTokens, outputTokens: r.outputTokens, costUsd: r.costUsd } });
         return row.id;
       },
     },

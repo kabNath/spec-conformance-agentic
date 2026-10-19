@@ -7,6 +7,7 @@ import type { CallRow, McpDeps, SpecInfo } from "../../mcp/deps";
 import { createMcpServer } from "../../mcp/server";
 import type { ClauseCitation, EvaluatedRequirement } from "../../lib/conformance-contract";
 import type { EvaluatedRow } from "../../lib/evaluate-requirement";
+import { addUsage } from "../../lib/usage";
 import { CLAUSES } from "../helpers/world";
 import { fakeAttestResponse } from "../helpers/world";
 
@@ -52,12 +53,15 @@ export function makeFakes(): Fakes {
     },
     evaluate: async (i): Promise<EvaluatedRow> => {
       const none = i.citations.length === 0;
+      addUsage("test/model", 100, 50); // the real call chain meters tokens in lib/clients/openrouter.ts
+      i.onStep?.({ name: "assessment", rawVerdict: none ? "insufficient_evidence" : "conformant", verdict: none ? "insufficient_evidence" : "conformant", guardReason: none ? null : null, verifierAgrees: true });
       const att = fakeAttestResponse({ requirement: i.requirement, verdict: none ? "insufficient_evidence" : "conformant", assessor_confidence: 0.95, verifier_confidence: 0.9, verifier_agrees: true });
+      i.onStep?.({ name: "attestation", calibrated: att.calibrated, keyId: att.key_id });
       return {
         id: randomUUID(), runId: i.runId, requirement: i.requirement, source: { documentId: i.standardId, documentName: i.implDocName },
         citations: i.citations, verdict: none ? "insufficient_evidence" : "conformant", normative: "shall", confidence: att.calibrated_confidence ?? att.raw_confidence,
         verifier: { agrees: true, confidence: 0.9, note: "ok" }, review: none ? { required: true, reason: "no_clause_found" } : { required: false },
-        retrievalPath: i.path, model: "test", evaluatedAt: "2026-01-01T00:00:00.000Z",
+        retrievalPath: i.path, model: "test", evaluatedAt: "2026-01-01T00:00:00.000Z", trace: { requestId: i.requestId },
         attestation: { calibrated: att.calibrated, calibratedConfidence: att.calibrated_confidence, ciLow: att.ci_low, ciHigh: att.ci_high, rawConfidence: att.raw_confidence,
           calibrationVersion: att.calibration_version, nReference: att.n_reference, trancheN: att.tranche_n, keyId: att.key_id, issuedAt: att.issued_at,
           contentHash: att.content_hash, signature: att.signature, publicKey: att.public_key },

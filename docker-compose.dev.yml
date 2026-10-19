@@ -1,0 +1,8 @@
+# Local development ONLY: publishes the backing services on localhost so `npm run dev` can reach them.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres qdrant neo4j vidimus
+# Never use this file on a server: it breaks the isolation that docker-compose.yml guarantees.
+services:
+  postgres: { ports: ["127.0.0.1:5432:5432"], networks: [internal, edge] }
+  qdrant:   { ports: ["127.0.0.1:6333:6333"], networks: [internal, edge] }
+  neo4j:    { ports: ["127.0.0.1:7474:7474", "127.0.0.1:7687:7687"], networks: [internal, edge] }
+  vidimus:  { ports: ["127.0.0.1:4319:4319"], networks: [internal, edge] }

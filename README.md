@@ -51,12 +51,14 @@ Persistence: Prisma/PostgreSQL (matrix rows), Cloudinary (blobs), Vidimus (attes
 
 ## Run locally
 
-    docker compose up -d                 # postgres + qdrant + neo4j + vidimus
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres qdrant neo4j vidimus
     cp .env.example .env.local           # fill Clerk / OpenRouter keys
     npm install
     npx prisma migrate dev --name init
     npm run ingest -- <orgId> ts38331 "TS 38.331" 18.3.0 Rel-18 examples/ts38331-extrait.txt
     npm run dev                          # http://localhost:3000
+
+The whole stack in containers (app, signing sidecar, Postgres, Qdrant, Neo4j; only the app publishes a port) is `docker compose up -d --build`: see [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md). The REST API ([docs/openapi.yaml](docs/openapi.yaml)) and the MCP server ([docs/INTEGRATION.md](docs/INTEGRATION.md)) use API keys; `examples/mcp/agent-client.ts` is a demo of the MCP wiring with fixed routing (a LangGraph workflow without an LLM choosing steps), not an autonomous agent. Hosting options and costs for a pilot: [docs/HOSTING_OPTIONS.md](docs/HOSTING_OPTIONS.md).
 
 ## Expected behaviour
 

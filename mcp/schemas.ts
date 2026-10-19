@@ -70,3 +70,12 @@ export const verifyVerdictOut = {
   signer_trusted: z.boolean().describe("...and the signing key is listed in the sidecar's trusted-keys.json (currently an empty list: false)."),
   key_id: z.string().nullable(), issues: z.array(z.string()), trust_issues: z.array(z.string()), warnings: z.array(z.string()), call,
 };
+
+export const SearchSpecInput = z.object(searchSpecIn);
+export const CheckConformanceInput = z.object(checkConformanceIn);
+export const ExtractRequirementsInput = z.object(extractRequirementsIn);
+export const VerdictIdInput = z.object(verdictIdIn);
+export type SearchSpecArgs = z.infer<typeof SearchSpecInput>;
+export type CheckConformanceArgs = z.infer<typeof CheckConformanceInput>;
+export type ExtractRequirementsArgs = z.infer<typeof ExtractRequirementsInput>;
+export type VerdictIdArgs = z.infer<typeof VerdictIdInput>;

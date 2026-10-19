@@ -773,7 +773,7 @@ Proof of the original history (pre-rewrite):
 |---|---|
 | original pre-registration commit | `ad3175f1ffef683855172fdde73093373483004e` (2026-10-06T19:37:18+08:00); intact inside the bundle below |
 | SHA-256 of `eval/PREREGISTRATION-gap-guard.md` | `77f9a071e27392141955d3e9fde4d9b4001f2a8f6d2bf15036a0d8535af98014` (identical in the old and the new commit: the file is not touched) |
-| Ed25519 attestation of that hash | `docs/preregistration.md`. It is signed with the sidecar's **development key**, which is **not listed** in `vidimus-svc/trusted-keys.json` (the list is empty), so a verifier pinned to that file rejects it. No production key exists on the machine that produced this record, so no second attestation has been made. |
+| Ed25519 attestations of that hash | `docs/preregistration.md`: (1) signed 2026-10-06 with the sidecar's development key, not listed in `trusted-keys.json`; (2) `docs/preregistration.attestation-prod.json`, signed 2026-10-19 with the production key (key id `81360f61…7472`, listed in `vidimus-svc/trusted-keys.json`), origin commit = the rewritten SHA below |
 | backup of the original history | `spec-conformance-agentic-before-rewrite-20261006.bundle`, `git bundle verify`: complete history, head `bd74c52` |
 | SHA-256 of the bundle | `2835e695090552b5ee099ea9e9a8d2d0398e17edbc0161b0fa7e2f0472a38db4` |
 
