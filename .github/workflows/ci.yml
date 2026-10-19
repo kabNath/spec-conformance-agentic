@@ -12,6 +12,8 @@ jobs:
       - run: npx prisma generate
       - run: npm run typecheck
       - run: npm run test:unit
+      - run: npm test            # vitest: MCP server (schemas, errors, cross-organisation isolation) + pipeline characterisation
+      - run: npm run lint
       - run: npm run build
 
   # Runs in parallel with `build` (no `needs:`); its status is a separate,
