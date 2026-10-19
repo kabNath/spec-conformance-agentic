@@ -1,0 +1,301 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "runId": "run-1",
+    "requirement": "The terminal starts timer T901 and sends a SessionRequest message when it opens a link session.",
+    "source": {
+      "documentId": "lcp100",
+      "documentName": "impl.txt",
+      "section": "R1"
+    },
+    "citations": [
+      {
+        "spec": "LCP 100",
+        "version": "1.0.0",
+        "release": "Rel-0",
+        "clause": "5.3.3",
+        "clauseTitle": "Session set-up",
+        "text": "The purpose of this procedure is to open a link session and the control channel CCH1 between the terminal and the network. On initiation, the terminal shall apply the default channel parameters, start timer T901 and send a SessionRequest message carrying a random session value. When the network answers with a SessionAccept message, the terminal shall stop timer T901, store the received parameters and enter the active state.",
+        "charStart": 0,
+        "charEnd": 427,
+        "normative": "shall",
+        "display": "3GPP LCP 100 v1.0.0 §5.3.3",
+        "excerpt": "the terminal shall apply the default channel parameters, start timer T901 and send a SessionRequest message carrying a random session value"
+      }
+    ],
+    "verdict": "conformant",
+    "normative": "shall",
+    "confidence": 0.94,
+    "verifier": {
+      "agrees": true,
+      "confidence": 0.9,
+      "note": "The clause supports the verdict."
+    },
+    "review": {
+      "required": false
+    },
+    "gapNote": "",
+    "retrievalPath": [],
+    "attestation": {
+      "calibrated": true,
+      "calibratedConfidence": 0.94,
+      "ciLow": 0.78,
+      "ciHigh": 0.99,
+      "rawConfidence": 0.925,
+      "calibrationVersion": "cal-test",
+      "nReference": 40,
+      "trancheN": 26,
+      "keyId": "keyid-test",
+      "issuedAt": "2026-01-01T00:00:00Z",
+      "contentHash": "e080ba5d327b43822b1aad2dc1cb513e60efb2e99c4708f94a7262384d5be2b9",
+      "signature": "sig-e080ba5d327b4382",
+      "publicKey": "pub-test"
+    },
+    "model": "anthropic/claude-sonnet-4.6",
+    "evaluatedAt": "2026-01-01T00:00:00.000Z",
+    "trace": {
+      "version": "trace-v1",
+      "assessor": {
+        "rawVerdict": "conformant",
+        "confidence": 0.95,
+        "quote": {
+          "status": "verified",
+          "length": 139,
+          "sha256": "54cd0109791c83872dd1454c9105e0998b1f7759ce11c96b7c57ebbb8fc349b0",
+          "text": "the terminal shall apply the default channel parameters, start timer T901 and send a SessionRequest message carrying a random session value"
+        }
+      },
+      "guard": {
+        "reason": null
+      },
+      "verifier": {
+        "agrees": true,
+        "confidence": 0.9,
+        "note": "The clause supports the verdict."
+      },
+      "finalVerdict": "conformant"
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "runId": "run-1",
+    "requirement": "The terminal releases the session before answering with a SessionUpdateComplete message.",
+    "source": {
+      "documentId": "lcp100",
+      "documentName": "impl.txt",
+      "section": "R2"
+    },
+    "citations": [
+      {
+        "spec": "LCP 100",
+        "version": "1.0.0",
+        "release": "Rel-0",
+        "clause": "5.3.5",
+        "clauseTitle": "Session update",
+        "text": "The purpose of this procedure is to change an open session. The terminal shall apply the parameters carried by the SessionUpdate message in the order received and shall not release the session before it has answered with a SessionUpdateComplete message.",
+        "charStart": 0,
+        "charEnd": 253,
+        "normative": "shall_not",
+        "display": "3GPP LCP 100 v1.0.0 §5.3.5",
+        "excerpt": "shall not release the session before it has answered with a SessionUpdateComplete message"
+      }
+    ],
+    "verdict": "gap",
+    "normative": "shall_not",
+    "confidence": 0.94,
+    "verifier": {
+      "agrees": true,
+      "confidence": 0.9,
+      "note": "The clause supports the verdict."
+    },
+    "review": {
+      "required": false
+    },
+    "gapNote": "Releases before the completion message.",
+    "retrievalPath": [],
+    "attestation": {
+      "calibrated": true,
+      "calibratedConfidence": 0.94,
+      "ciLow": 0.78,
+      "ciHigh": 0.99,
+      "rawConfidence": 0.915,
+      "calibrationVersion": "cal-test",
+      "nReference": 40,
+      "trancheN": 26,
+      "keyId": "keyid-test",
+      "issuedAt": "2026-01-01T00:00:00Z",
+      "contentHash": "8a955888e198c0f9a8fdf7feea881b2d3821d94cce8189fcf1885612406686ae",
+      "signature": "sig-8a955888e198c0f9",
+      "publicKey": "pub-test"
+    },
+    "model": "anthropic/claude-sonnet-4.6",
+    "evaluatedAt": "2026-01-01T00:00:00.000Z",
+    "trace": {
+      "version": "trace-v1",
+      "assessor": {
+        "rawVerdict": "gap",
+        "confidence": 0.93,
+        "quote": {
+          "status": "verified",
+          "length": 89,
+          "sha256": "6d570526ce3bc2ef1d3313f8daf9e07d060e5c9010d51f6f2d0382e7c8bfbc53",
+          "text": "shall not release the session before it has answered with a SessionUpdateComplete message"
+        }
+      },
+      "guard": {
+        "reason": null
+      },
+      "gapCheck": {
+        "outcome": "pass",
+        "sameSubject": true,
+        "contradicts": true
+      },
+      "verifier": {
+        "agrees": true,
+        "confidence": 0.9,
+        "note": "The clause supports the verdict."
+      },
+      "finalVerdict": "gap"
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "runId": "run-1",
+    "requirement": "The terminal ignores the parameter order of a SessionUpdate message.",
+    "source": {
+      "documentId": "lcp100",
+      "documentName": "impl.txt",
+      "section": "R3"
+    },
+    "citations": [
+      {
+        "spec": "LCP 100",
+        "version": "1.0.0",
+        "release": "Rel-0",
+        "clause": "5.3.5",
+        "clauseTitle": "Session update",
+        "text": "The purpose of this procedure is to change an open session. The terminal shall apply the parameters carried by the SessionUpdate message in the order received and shall not release the session before it has answered with a SessionUpdateComplete message.",
+        "charStart": 0,
+        "charEnd": 253,
+        "normative": "shall_not",
+        "display": "3GPP LCP 100 v1.0.0 §5.3.5"
+      }
+    ],
+    "verdict": "insufficient_evidence",
+    "normative": "shall",
+    "confidence": 0.94,
+    "verifier": {
+      "agrees": true,
+      "confidence": 0.9,
+      "note": "The clause supports the verdict."
+    },
+    "review": {
+      "required": true,
+      "reason": "citation_not_verbatim"
+    },
+    "gapNote": "Order is mandatory.",
+    "retrievalPath": [],
+    "attestation": {
+      "calibrated": true,
+      "calibratedConfidence": 0.94,
+      "ciLow": 0.78,
+      "ciHigh": 0.99,
+      "rawConfidence": 0.9,
+      "calibrationVersion": "cal-test",
+      "nReference": 40,
+      "trancheN": 26,
+      "keyId": "keyid-test",
+      "issuedAt": "2026-01-01T00:00:00Z",
+      "contentHash": "5b44d3e86155be3fc4e0d4ceb2010b9b78107e7cbb17d8ef40a533f19963b4a4",
+      "signature": "sig-5b44d3e86155be3f",
+      "publicKey": "pub-test"
+    },
+    "model": "anthropic/claude-sonnet-4.6",
+    "evaluatedAt": "2026-01-01T00:00:00.000Z",
+    "trace": {
+      "version": "trace-v1",
+      "assessor": {
+        "rawVerdict": "gap",
+        "confidence": 0.9,
+        "quote": {
+          "status": "not_verbatim",
+          "length": 68,
+          "sha256": "86cdfd16a51ccda94c8c9c8ee152d0d0ba885ad287168127f914c4b6acb267a9"
+        }
+      },
+      "guard": {
+        "reason": "citation_not_verbatim"
+      },
+      "verifier": {
+        "agrees": true,
+        "confidence": 0.9,
+        "note": "The clause supports the verdict."
+      },
+      "finalVerdict": "insufficient_evidence"
+    },
+    "rejectedQuoteText": "The terminal must keep the received order of parameters at all times"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "runId": "run-1",
+    "requirement": "The terminal encrypts the control channel with a rotating key.",
+    "source": {
+      "documentId": "lcp100",
+      "documentName": "impl.txt",
+      "section": "R4"
+    },
+    "citations": [],
+    "verdict": "insufficient_evidence",
+    "normative": "none",
+    "confidence": 0.35,
+    "verifier": {
+      "agrees": true,
+      "confidence": 0.5,
+      "note": "No clause to verify."
+    },
+    "review": {
+      "required": true,
+      "reason": "no_clause_found"
+    },
+    "gapNote": "No governing clause found.",
+    "retrievalPath": [],
+    "attestation": {
+      "calibrated": false,
+      "calibratedConfidence": null,
+      "ciLow": null,
+      "ciHigh": null,
+      "rawConfidence": 0.35,
+      "calibrationVersion": "cal-test",
+      "nReference": 40,
+      "trancheN": 4,
+      "keyId": "keyid-test",
+      "issuedAt": "2026-01-01T00:00:00Z",
+      "contentHash": "8881a3000d6fcfa793448d94f69cc8b2245030b51f02fe10ff794f0bda99bb77",
+      "signature": "sig-8881a3000d6fcfa7",
+      "publicKey": "pub-test"
+    },
+    "model": "anthropic/claude-sonnet-4.6",
+    "evaluatedAt": "2026-01-01T00:00:00.000Z",
+    "trace": {
+      "version": "trace-v1",
+      "assessor": {
+        "rawVerdict": "insufficient_evidence",
+        "confidence": 0.2,
+        "quote": {
+          "status": "none",
+          "length": 0,
+          "sha256": null
+        }
+      },
+      "guard": {
+        "reason": null
+      },
+      "verifier": {
+        "agrees": true,
+        "confidence": 0.5,
+        "note": "No clause to verify."
+      },
+      "finalVerdict": "insufficient_evidence"
+    }
+  }
+]
