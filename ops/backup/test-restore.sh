@@ -15,7 +15,7 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 docker network create "$ID" >/dev/null
 docker build -q -t sca-backup-tools . >/dev/null
 docker run -d --name "$ID-db" --network "$ID" -e POSTGRES_PASSWORD=pw -e POSTGRES_DB=conformance postgres:16-alpine >/dev/null
-docker run -d --name "$ID-s3" --network "$ID" -e initialBuckets=test-backups adobe/s3mock >/dev/null   # an S3 API fake (MinIO no longer publishes a free image)
+docker run -d --name "$ID-s3" --network "$ID" adobe/s3mock >/dev/null   # an S3 API fake (MinIO no longer publishes a free image)
 docker run -d --name "$ID-tools" --network "$ID" --user root --workdir /work --entrypoint sleep \
   -e PGHOST="$ID-db" -e PGUSER=postgres -e PGPASSWORD=pw -e PGDATABASE=conformance \
   -e BACKUP_S3_BUCKET=test-backups -e AWS_ACCESS_KEY_ID=testkey -e AWS_SECRET_ACCESS_KEY=testsecret123 \
@@ -36,7 +36,7 @@ CREATE TABLE "_prisma_migrations" (id varchar(36) PRIMARY KEY, checksum varchar(
 INSERT INTO "_prisma_migrations"(id, checksum, finished_at, migration_name, applied_steps_count) VALUES ('m1','x',now(),'init',1),('m2','y',now(),'mcp_api_keys',1);
 SQL
 T psql -q -v ON_ERROR_STOP=1 -f /work/seed.sql
-for i in $(seq 1 60); do T aws s3 ls s3://test-backups >/dev/null 2>&1 && break; sleep 2; done
+for i in $(seq 1 60); do T aws s3 mb s3://test-backups >/dev/null 2>&1 && break; T aws s3 ls s3://test-backups >/dev/null 2>&1 && break; sleep 2; done
 T aws s3 ls s3://test-backups >/dev/null || fail "the S3 fake did not come up"
 T bash -c 'age-keygen -o /tmp/age.key 2>/tmp/age.pub; grep -o "age1[a-z0-9]*" /tmp/age.pub > /tmp/recipient'
 
